@@ -4,9 +4,8 @@ from vector import Vector2
 from constants import *
 
 class Pacman(object):
-    def __init__(self) -> None:
+    def __init__(self, node) -> None:
         self.name = PACMAN
-        self.position = Vector2(200, 400)
         self.directions = {
             STOP: Vector2(),
             UP: Vector2(0, -1),
@@ -18,6 +17,12 @@ class Pacman(object):
         self.speed = 100 * TILEWIDTH/16
         self.radius = 10
         self.color = YELLOW
+        
+        self.node = node
+        self.set_position()
+        
+    def set_position(self):
+        self.position = self.node.position.copy()
         
     def get_valid_key(self):
         
@@ -32,6 +37,16 @@ class Pacman(object):
             return RIGHT
         return STOP
     
+    def valid_direction(self, direction):
+        if direction is not STOP:
+            if self.node.neighbors[direction] is not None:
+                return True
+            return False
+    def get_new_target(self, direction):
+        if self.valid_direction(direction):
+            return self.node.neighbors[direction]
+        return self.node
+    
     def render(self, screen):
         p = self.position.as_int()
         pygame.draw.circle(screen, self.color, p, self.radius)
@@ -39,8 +54,9 @@ class Pacman(object):
         
         
     def update(self, dt):
-        self.position += self.directions[self.direction]*self.speed*dt
         direction = self.get_valid_key()
         self.direction = direction
+        self.node = self.get_new_target(direction)
+        self.set_position()
         
     

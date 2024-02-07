@@ -19,7 +19,7 @@ class GameController(object):
         self.set_background()
         self.nodes = NodeGroup()
         self.nodes.setup_test_nodes()
-        self.pacman = Pacman()
+        self.pacman = Pacman(self.nodes.node_list[0])
     
     def check_events(self):
         for event in pygame.event.get():
