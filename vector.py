@@ -10,7 +10,7 @@ class Vector2(object):
         return Vector2(self.x + other.x, self.y + other.y)
     
     def __sub__(self, other):
-        return Vector2(self.x - other.x, self.y * other.y)
+        return Vector2(self.x - other.x, self.y - other.y)
     
     def __neg__(self):
         return Vector2(-self.x, -self.y)
