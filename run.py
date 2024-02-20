@@ -17,10 +17,9 @@ class GameController(object):
         
     def start_game(self):
         self.set_background()
-        self.nodes = NodeGroup()
-        self.nodes.setup_test_nodes()
-        self.pacman = Pacman(self.nodes.node_list[0])
-    
+        self.nodes = NodeGroup("mazetest.txt")
+        self.pacman = Pacman(self.nodes.get_start_temp_node())
+        
     def check_events(self):
         for event in pygame.event.get():
             if event.type == QUIT:
