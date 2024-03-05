@@ -63,15 +63,15 @@ class NodeGroup(object):
         for col in list(range(data_t.shape[0])):
             key = None
             for row in list(range(data_t.shape[1])):
-                if data[col][row] in self.node_symbols:
+                if data_t[col][row] in self.node_symbols:
                     if key is None:
                         key = self.construct_key(col+xoffset, row+yoffset)
                     else:
-                        other_key = self.construct_key(col+xoffset, row+yoffset)
-                        self.nodes_LUT[key].neighbors[DOWN] = self.nodes_LUT[other_key]
-                        self.nodes_LUT[key].neighbors[UP] = self.nodes_LUT[key]
-                        key = other_key
-                elif data[col][row] not in self.path_symbols:
+                        otherkey = self.construct_key(col+xoffset, row+yoffset)
+                        self.nodes_LUT[key].neighbors[DOWN] = self.nodes_LUT[otherkey]
+                        self.nodes_LUT[otherkey].neighbors[UP] = self.nodes_LUT[key]
+                        key = otherkey
+                elif data_t[col][row] not in self.path_symbols:
                     key = None
                     
     def get_node_from_pixels(self, xpixel, ypixel):
