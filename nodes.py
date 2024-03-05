@@ -27,6 +27,7 @@ class NodeGroup(object):
         self.node_symbols = ['+']
         self.path_symbols = ['.']
         data = self.read_maze_file(level)
+        self.create_node_table(data)
         self.connect_horizontally(data)
         self.connect_vertically(data)
         
@@ -43,6 +44,8 @@ class NodeGroup(object):
     def construct_key(self, x, y):
         return x * TILEWIDTH, y * TILEHEIGHT
     
+    
+    
     def connect_horizontally(self, data, xoffset=0, yoffset=0):
         for row in list(range(data.shape[0])):
             key = None
@@ -57,6 +60,8 @@ class NodeGroup(object):
                         key = otherkey
                 elif data[row][col] not in self.path_symbols:
                     key = None
+
+
                     
     def connect_vertically(self, data, xoffset=0, yoffset=0):
         data_t = data.transpose()
