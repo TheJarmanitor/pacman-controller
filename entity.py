@@ -14,6 +14,8 @@ class Entity(object):
                            LEFT:Vector2(-1,0),
                            RIGHT:Vector2(1,0)}
         self.direction = STOP
+        self.direction_method = self.random_direction
+        
         self.set_speed(100)
         self.radius = 10
         self.color = WHITE
@@ -22,9 +24,10 @@ class Entity(object):
         self.set_position()
         self.target = node
         self.visible = True
+        self.goal = None
         
     def set_position(self):
-        self.possition = self.node.position.copy()
+        self.position = self.node.position.copy()
         
     def update(self, dt):
         self.position += self.directions[self.direction]*self.speed*dt
@@ -32,7 +35,7 @@ class Entity(object):
         if self.overshot_target():
             self.node = self.target
             directions = self.valid_directions()
-            direction = self.random_direction(directions)
+            direction = self.direction_method(directions)
             
             self.target = self.get_new_target(direction)
             if self.target is not self.node:
@@ -41,6 +44,14 @@ class Entity(object):
                 self.target = self.get_new_target(self.direction)
                 
             self.set_position()
+            
+    def goal_direction(self, directions):
+        distances = []
+        for direction in directions:
+            vec = self.node.position + self.directions[direction] * TILEWIDTH - self.goal
+            distances.append(vec.magnitude_squared())
+        index = distances.index(min(distances))
+        return directions[index]
     
     def valid_directions(self):
         directions = []

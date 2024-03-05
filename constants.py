@@ -19,3 +19,5 @@ RIGHT = -2
 
 
 PACMAN = 0
+
+GHOST = 3
