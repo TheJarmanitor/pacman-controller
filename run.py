@@ -20,7 +20,7 @@ class GameController(object):
         self.set_background()
         self.nodes = NodeGroup("maze1.txt")
         self.pacman = Pacman(self.nodes.get_start_temp_node())
-        self.ghost = Ghost(self.nodes.get_start_temp_node())
+        self.ghost = Ghost(self.nodes.get_node_from_pixels(48, 464))
         
     def check_events(self):
         for event in pygame.event.get():

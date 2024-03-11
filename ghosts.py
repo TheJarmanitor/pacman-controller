@@ -10,5 +10,4 @@ class Ghost(Entity):
         self.name = GHOST
         self.poinst = 200
         self.goal = Vector2()
-        self.direction_method = self.goal_direction
-        
+        self.direction_method = self.random_direction 
