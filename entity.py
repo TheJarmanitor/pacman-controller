@@ -20,12 +20,15 @@ class Entity(object):
         self.radius = 10
         self.collide_radius = 5
         self.color = WHITE
-        
-        self.node = node
-        self.set_position()
-        self.target = node
         self.visible = True
         self.goal = None
+        self.set_start_node(node)
+        
+    def set_start_node(self, node):
+        self.node = node
+        self.start_node = node
+        self.target = node
+        self.set_position()
         
     def set_position(self):
         self.position = self.node.position.copy()

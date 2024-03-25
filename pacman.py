@@ -9,6 +9,7 @@ class Pacman(Entity):
         Entity.__init__(self, node)
         self.name = PACMAN
         self.color = YELLOW
+        self.direction = LEFT
         
         
     def set_position(self):
@@ -51,13 +52,17 @@ class Pacman(Entity):
     
     def eat_pellets(self, pellet_list):
         for pellet in pellet_list:
-            d = self.position - pellet.position
-            d_squared = d.magnitude_squared()
-            r_squared = (pellet.radius + self.collide_radius)**2
-            if d_squared <= r_squared:
+            if self.collide_check(pellet):
                 return pellet
         return None
         
-        
-        
+    def collide_ghost(self, ghost):
+        return self.collide_check(ghost)
     
+    def collide_check(self, other):
+        d = self.position - other.position
+        d_squared = d.magnitude_squared()
+        r_squared = (self.collide_radius + other.radius) ** 2
+        if d_squared < r_squared:
+            return True
+        return False
