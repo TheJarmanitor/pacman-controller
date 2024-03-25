@@ -18,6 +18,7 @@ class Entity(object):
         
         self.set_speed(100)
         self.radius = 10
+        self.collide_radius = 5
         self.color = WHITE
         
         self.node = node

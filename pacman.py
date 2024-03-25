@@ -20,6 +20,8 @@ class Pacman(Entity):
         
         if self.overshot_target():
             self.node = self.target
+            if self.node.neighbors[PORTAL] is not None:
+                self.node = self.node.neighbors[PORTAL]
             self.target = self.get_new_target(direction)
             if self.target is not self.node:
                 self.direction = direction
@@ -46,7 +48,15 @@ class Pacman(Entity):
         if (key_pressed[K_RIGHT] or key_pressed[K_d]):
             return RIGHT
         return STOP    
-        
+    
+    def eat_pellets(self, pellet_list):
+        for pellet in pellet_list:
+            d = self.position - pellet.position
+            d_squared = d.magnitude_squared()
+            r_squared = (pellet.radius + self.collide_radius)**2
+            if d_squared <= r_squared:
+                return pellet
+        return None
         
         
         
