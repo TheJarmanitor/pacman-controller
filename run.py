@@ -5,6 +5,7 @@ from pacman import Pacman
 from nodes import NodeGroup
 from pellets import PelletGroup
 from ghosts import GhostGroup
+from fruits import Fruit
 
 
 class GameController(object):
@@ -12,6 +13,7 @@ class GameController(object):
         pygame.init()
         self.screen = pygame.display.set_mode(SCREENSIZE, 0, 32)
         self.clock = pygame.time.Clock()
+        self.fruit = None
         
 
     def set_background(self):
@@ -53,11 +55,23 @@ class GameController(object):
             if self.pacman.collide_ghost(ghost):
                 if ghost.mode.current is FREIGHT:
                     ghost.start_spawn()
+                    
+    def check_fruit_events(self):
+        if self.pellets.num_eaten in [50, 140]:
+            if self.fruit is None:
+                self.fruit = Fruit(self.nodes.get_node_from_tiles(9, 20))
+        if self.fruit is not None:
+            if self.pacman.collide_check(self.fruit):
+                self.fruit = None
+            elif self.fruit.destroy:
+                self.fruit = None
     
     def render(self):
         self.screen.blit(self.background, (0,0))
         self.nodes.render(self.screen)
         self.pellets.render(self.screen)
+        if self.fruit is not None:
+            self.fruit.render(self.screen)
         self.pacman.render(self.screen)
         self.ghosts.render(self.screen)
         pygame.display.update()        
@@ -66,9 +80,12 @@ class GameController(object):
         dt = self.clock.tick(60) / 1000.0
         self.pacman.update(dt)
         self.pellets.update(dt)
+        if self.fruit is not None:
+            self.fruit.update(dt)
         self.ghosts.update(dt)
         self.check_pellet_events()
         self.check_ghost_events()
+        self.check_fruit_events()
         self.check_events()
         self.render()
         

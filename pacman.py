@@ -10,6 +10,7 @@ class Pacman(Entity):
         self.name = PACMAN
         self.color = YELLOW
         self.direction = LEFT
+        self.set_between_nodes(LEFT)
         
         
     def set_position(self):
