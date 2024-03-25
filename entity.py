@@ -30,6 +30,12 @@ class Entity(object):
         self.target = node
         self.set_position()
         
+    def reset(self):
+        self.set_start_node(self.start_node)
+        self.direction = STOP
+        self.speed = 100
+        self.visible = True
+        
     def set_position(self):
         self.position = self.node.position.copy()
         

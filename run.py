@@ -14,6 +14,7 @@ class GameController(object):
         self.screen = pygame.display.set_mode(SCREENSIZE, 0, 32)
         self.clock = pygame.time.Clock()
         self.fruit = None
+        self.lives = 3
         
 
     def set_background(self):
@@ -55,6 +56,15 @@ class GameController(object):
             if self.pacman.collide_ghost(ghost):
                 if ghost.mode.current is FREIGHT:
                     ghost.start_spawn()
+                elif ghost.mode.current is not SPAWN:
+                    if self.pacman.alive:
+                        self.lives -= 1
+                        self.pacman.die()
+                        self.ghosts.hide()
+                        if self.lives <= 0:
+                            self.restart_game()
+                        else:
+                            self.reset_level()
                     
     def check_fruit_events(self):
         if self.pellets.num_eaten in [50, 140]:
@@ -65,6 +75,16 @@ class GameController(object):
                 self.fruit = None
             elif self.fruit.destroy:
                 self.fruit = None
+                
+    def restart_game(self):
+        self.lives = 3
+        self.fruit = None
+        self.start_game()
+        
+    def reset_level(self):
+        self.pacman.reset()
+        self.ghosts.reset()
+        self.fruit = None
     
     def render(self):
         self.screen.blit(self.background, (0,0))

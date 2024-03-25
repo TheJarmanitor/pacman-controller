@@ -17,6 +17,11 @@ class Ghost(Entity):
         self.blinky = blinky
         self.homenode = node
         
+    def reset(self):
+        Entity.reset(self)
+        self.points = 200
+        self.direction_method = self.goal_direction
+        
         
     def update(self, dt):
         self.mode.update(dt)
