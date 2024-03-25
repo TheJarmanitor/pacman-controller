@@ -6,6 +6,7 @@ from nodes import NodeGroup
 from pellets import PelletGroup
 from ghosts import GhostGroup
 from fruits import Fruit
+from pauser import Pause
 
 
 class GameController(object):
@@ -15,6 +16,7 @@ class GameController(object):
         self.clock = pygame.time.Clock()
         self.fruit = None
         self.lives = 3
+        self.pause = Pause(True)
         
 
     def set_background(self):
@@ -42,7 +44,13 @@ class GameController(object):
         for event in pygame.event.get():
             if event.type == QUIT:
                 exit()
-    
+            elif event.type == KEYDOWN:
+                if event.key == K_SPACE:
+                    self.pause.set_pause(player_paused=True)
+                    if not self.pause.paused:
+                        self.show_entities()
+                    else:
+                        self.hide_entities()
     def check_pellet_events(self):
         pellet = self.pacman.eat_pellets(self.pellets.pellet_list)
         if pellet:
@@ -55,6 +63,9 @@ class GameController(object):
         for ghost in self.ghosts:
             if self.pacman.collide_ghost(ghost):
                 if ghost.mode.current is FREIGHT:
+                    self.pacman.visible = False
+                    ghost.visible = False
+                    self.pause.set_pause(pause_time=1, func=self.show_entities)
                     ghost.start_spawn()
                 elif ghost.mode.current is not SPAWN:
                     if self.pacman.alive:
@@ -62,9 +73,9 @@ class GameController(object):
                         self.pacman.die()
                         self.ghosts.hide()
                         if self.lives <= 0:
-                            self.restart_game()
+                            self.pause.set_pause(pause_time=1, func=self.restart_game)
                         else:
-                            self.reset_level()
+                            self.pause.set_pause(pause_time=1, func=self.reset_level)
                     
     def check_fruit_events(self):
         if self.pellets.num_eaten in [50, 140]:
@@ -75,6 +86,14 @@ class GameController(object):
                 self.fruit = None
             elif self.fruit.destroy:
                 self.fruit = None
+    
+    def show_entities(self):
+        self.pacman.visible = True
+        self.ghosts.show()
+        
+    def hide_entities(self):
+        self.pacman.visible = False
+        self.ghosts.hide()
                 
     def restart_game(self):
         self.lives = 3
@@ -98,14 +117,18 @@ class GameController(object):
     
     def update(self):
         dt = self.clock.tick(60) / 1000.0
-        self.pacman.update(dt)
         self.pellets.update(dt)
-        if self.fruit is not None:
-            self.fruit.update(dt)
-        self.ghosts.update(dt)
-        self.check_pellet_events()
-        self.check_ghost_events()
-        self.check_fruit_events()
+        if not self.pause.paused:
+            self.pacman.update(dt)
+            if self.fruit is not None:
+                self.fruit.update(dt)
+            self.ghosts.update(dt)
+            self.check_pellet_events()
+            self.check_ghost_events()
+            self.check_fruit_events()
+        after_pause_method = self.pause.update(dt)
+        if after_pause_method is not None:
+            after_pause_method()
         self.check_events()
         self.render()
         
