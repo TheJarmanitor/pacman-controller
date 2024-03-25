@@ -8,7 +8,7 @@ class Fruit(Entity):
         self.name = FRUIT
         self.color = GREEN
         self.lifespan = 5
-        self.value = 100
+        self.points = 100
         self.destroy = False
         self.timer = 0
         self.set_between_nodes(RIGHT)
