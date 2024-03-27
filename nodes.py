@@ -13,6 +13,8 @@ class Node(object):
             RIGHT: None,
             PORTAL: None
         }
+        self.neighbors_cost = {}
+        
     def render(self, screen):
         for n in self.neighbors.keys():
             if self.neighbors[n] is not None and n != PORTAL:
@@ -32,6 +34,7 @@ class NodeGroup(object):
         self.connect_horizontally(data)
         self.connect_vertically(data)
         self.homekey = None
+        self.costs = self.get_nodes()
         
     def read_maze_file(self, textfile):
         return np.loadtxt(textfile, dtype='<U1')
@@ -122,7 +125,46 @@ class NodeGroup(object):
     def render(self, screen):
         for node in self.nodes_LUT.values():
             node.render(screen)
+           
+    ############################## djistkra functions ##############################
+    
+    def get_list_of_nodes_pixels(self):
+        return list(self.nodes_LUT)
+    
+    def get_pixels_from_node(self, node):
+        id = list(self.nodes_LUT.values()).index(node)
+        list_of_pixels = self.get_list_of_nodes_pixels()
+        return list_of_pixels[id]
+    
+    def get_neighors_obj(self, node):
+        node_obj = self.get_node_from_pixels(*node)
+        return node_obj.neighbors 
             
+    def get_neigbors(self, node):
+        neighbors_obj = self.get_neighors_obj(node)
+        values = neighbors_obj.values()
+        neighbors_obj_2 = []
+        for direction in values:
+            if not direction is None:
+                neighbors_obj_2.append(direction)
+        list_neighbors = []
+        for neighbor in neighbors_obj_2:
+            list_neighbors.append(self.get_pixels_from_node(neighbor))
+        return list_neighbors
+    
+    def get_nodes(self):
+       cost_dict = {}
+       list_of_nodes_pixels = self.get_list_of_nodes_pixels() 
+       for node in list_of_nodes_pixels:
+        #    pixels = self.get_node_from_pixels(*node)
+            neighbors = self.get_neighors_obj(node)
+            temp_neighbors = neighbors.values()
+            temp_list = []
+            for direction in temp_neighbors:
+                if direction is not None:
+                     temp_list.append(1)
+                else:
+                    temp_list.append(None)
             
-            
-        
+            cost_dict[node] = temp_list
+            return cost_dict

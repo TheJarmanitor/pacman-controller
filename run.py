@@ -35,12 +35,16 @@ class GameController(object):
         self.nodes.connect_home_nodes(homekey, (15, 14), RIGHT)
         self.pacman = Pacman(self.nodes.get_node_from_tiles(15, 26))
         self.pellets = PelletGroup("maze1.txt")
+        
+        
         self.ghosts = GhostGroup(self.nodes.get_start_temp_node(), self.pacman)
         self.ghosts.blinky.set_start_node(self.nodes.get_node_from_tiles(2 + 11.5, 0 + 14))
         self.ghosts.pinky.set_start_node(self.nodes.get_node_from_tiles(2 + 11.5, 3 + 14))
         self.ghosts.inky.set_start_node(self.nodes.get_node_from_tiles(0 + 11.5, 3 + 14))
         self.ghosts.clyde.set_start_node(self.nodes.get_node_from_tiles(4 + 11.5, 3 + 14))
-        self.ghosts.set_spawn_node(self.nodes.get_node_from_tiles(2 + 11.5, 3 + 14))        
+        self.ghosts.set_spawn_node(self.nodes.get_node_from_tiles(2 + 11.5, 3 + 14))  
+              
+        self.pacman.get_ghost_object(self.ghosts.blinky)
 
         
     def check_events(self):
@@ -149,6 +153,7 @@ class GameController(object):
             self.check_pellet_events()
             self.check_ghost_events()
             self.check_fruit_events()
+            self.pacman.get_ghost_object(self.pacma.get_closest_ghost(self.ghosts))
         after_pause_method = self.pause.update(dt)
         if after_pause_method is not None:
             after_pause_method()

@@ -3,7 +3,8 @@ import pygame
 from pygame.locals import *
 from vector import Vector2
 from constants import *
-from random import randint
+from random import randint, choice
+from algorithms import dijkstra_or_a_star
 
 class Entity(object):
     def __init__(self, node) -> None:
@@ -23,6 +24,7 @@ class Entity(object):
         self.visible = True
         self.goal = None
         self.set_start_node(node)
+        self.enemy: Entity
         
     def set_start_node(self, node):
         self.node = node
@@ -81,6 +83,21 @@ class Entity(object):
     def random_direction(self, directions):
         return directions[randint(0, len(directions) - 1)]
     
+    def wander_random(self, directions):
+        return self.random_direction(directions)
+    
+    def wander_biased(self, directions):
+        previous_direction = self.direction
+        if previous_direction in directions:
+            next_dir_prob = randint(1, 100)
+            if next_dir_prob > 50:
+                return previous_direction
+            else:
+                directions.remove(previous_direction)
+                return choice(directions)
+        else:
+            return self.wander_random(directions)
+    
     
     def valid_direction(self, direction):
         if direction is not STOP:
@@ -121,3 +138,47 @@ class Entity(object):
         if self.visible:
             p = self.position.as_int()
             pygame.draw.circle(screen, self.color, p, self.radius)
+            
+    def get_dijkstra_path(self, directions):
+        last_enemy_node = self.enemy.target
+        last_enemy_node = self.nodes.get_pixel_from_node(last_enemy_node)
+        my_target = self.target
+        my_target = self.nodes.get_pixel_from_node(my_target)
+        
+        previous_nodes, _ = dijkstra_or_a_star(self.nodes, my_target, a_star=True)
+        
+        path = []
+        node = last_enemy_node
+        
+        while node != my_target:
+            path.append(node)
+            node = previous_nodes[node]
+            
+        path.append(my_target)
+        path.reverse()
+        
+        return path
+    
+    def goal_direction_dijkstra(self, directions):
+        path = self.get_dijkstra_path(directions)
+        my_target = self.target
+        my_target = self.nodes.get_pixel_from_node(my_target)
+        
+        path.append(my_target)
+        
+        self.path = path
+        next_target_node = path[1]
+        
+        if my_target[0] > next_target_node[0] and 2 in directions:
+            return 2
+        if my_target[0] < next_target_node[0] and -2 in directions:
+            return -2
+        if my_target[1] > next_target_node[1] and 1 in directions:
+            return 1
+        if my_target[1] > next_target_node[1] and 1 in directions:
+            return -1
+        else:
+            if -1 * self.enemy.direction in directions:
+                return -1 * self.enemy.direction
+            else:
+                return choice(directions)

@@ -44,3 +44,20 @@ LEVELTXT = 1
 READYTXT = 2
 PAUSETXT = 3
 GAMEOVERTXT = 4
+
+
+KILL_GHOST = "Kill Ghost"
+EAT_SUPERPELLETS = "Eat SuperPellets"
+
+FOLLOW_PATH_TO_TARGET = "Follow Path to Target"
+GO_TO_TARGET_QUADRANT = "Go To Target Quadrant"
+ACCELERATE = "Accelerate"
+VISIT_NEW_QUADRANT = "Visit New Quadrant"
+WANDER = "Wander"
+GO_CLOSE_CORNER = "Go Close Corner"
+DUMMY = "Dummy"
+
+TOP_LEFT = 1
+TOP_RIGHT = 2
+BOT_LEFT = -2
+BOT_RIGHT = -1
