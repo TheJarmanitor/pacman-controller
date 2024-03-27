@@ -31,18 +31,33 @@ class GameController(object):
         self.nodes = NodeGroup("maze1.txt")
         self.nodes.set_portal_pair((0, 17), (27, 17))
         homekey = self.nodes.create_home_nodes(11.5, 14)
+        # print(homekey)
         self.nodes.connect_home_nodes(homekey, (12, 14), LEFT)
         self.nodes.connect_home_nodes(homekey, (15, 14), RIGHT)
-        self.pacman = Pacman(self.nodes.get_node_from_tiles(15, 26))
+        self.pacman = Pacman(self.nodes.get_node_from_tiles(15, 26), self.nodes)
         self.pellets = PelletGroup("maze1.txt")
+        self.pacman.superpellet = self.pellets.powerpellets
         
         
-        self.ghosts = GhostGroup(self.nodes.get_start_temp_node(), self.pacman)
+         
+        self.ghosts = GhostGroup(self.nodes.get_start_temp_node(), self.nodes, self.pacman)
         self.ghosts.blinky.set_start_node(self.nodes.get_node_from_tiles(2 + 11.5, 0 + 14))
         self.ghosts.pinky.set_start_node(self.nodes.get_node_from_tiles(2 + 11.5, 3 + 14))
         self.ghosts.inky.set_start_node(self.nodes.get_node_from_tiles(0 + 11.5, 3 + 14))
         self.ghosts.clyde.set_start_node(self.nodes.get_node_from_tiles(4 + 11.5, 3 + 14))
         self.ghosts.set_spawn_node(self.nodes.get_node_from_tiles(2 + 11.5, 3 + 14))  
+        self.pacman.ghosts = self.ghosts
+        
+        self.nodes.deny_home_access(self.pacman)
+        self.nodes.deny_home_access_list(self.ghosts)
+        self.nodes.deny_access_list(2+11.5, 3+14, RIGHT, self.ghosts)
+        self.nodes.deny_access_list(2+11.5, 3+14, LEFT, self.ghosts)
+        self.ghosts.inky.start_node.deny_access(RIGHT, self.ghosts.inky)
+        self.ghosts.clyde.start_node.deny_access(LEFT, self.ghosts.clyde)
+        self.nodes.deny_access_list(12, 14, UP, self.ghosts)
+        self.nodes.deny_access_list(15, 14, UP, self.ghosts)
+        self.nodes.deny_access_list(12, 26, UP, self.ghosts)
+        self.nodes.deny_access_list(15, 26, UP, self.ghosts)
               
         self.pacman.get_ghost_object(self.ghosts.blinky)
 
@@ -64,6 +79,10 @@ class GameController(object):
         pellet = self.pacman.eat_pellets(self.pellets.pellet_list)
         if pellet:
             self.pellets.num_eaten += 1
+            if self.pellets.num_eaten == 30:
+                self.ghosts.inky.start_node.allow_access(RIGHT, self.ghosts.inky)
+            if self.pellets.num_eaten == 70:
+                self.ghosts.clyde.start_node.allow_access(LEFT, self.ghosts.clyde)
             self.update_score(pellet.points)
             self.pellets.pellet_list.remove(pellet)
             if pellet.name == POWERPELLET:
@@ -80,6 +99,7 @@ class GameController(object):
                     self.ghosts.update_points()
                     self.pause.set_pause(pause_time=1, func=self.show_entities)
                     ghost.start_spawn()
+                    self.nodes.allow_home_access(ghost)
                 elif ghost.mode.current is not SPAWN:
                     if self.pacman.alive:
                         self.lives -= 1
@@ -94,7 +114,8 @@ class GameController(object):
     def check_fruit_events(self):
         if self.pellets.num_eaten in [50, 140]:
             if self.fruit is None:
-                self.fruit = Fruit(self.nodes.get_node_from_tiles(9, 20))
+                self.fruit = Fruit(self.nodes.get_node_from_tiles(9, 20), self.nodes)
+                self.pacman.fruit = self.fruit
         if self.fruit is not None:
             if self.pacman.collide_check(self.fruit):
                 self.update_score(self.fruit.points)
@@ -153,7 +174,7 @@ class GameController(object):
             self.check_pellet_events()
             self.check_ghost_events()
             self.check_fruit_events()
-            self.pacman.get_ghost_object(self.pacma.get_closest_ghost(self.ghosts))
+            
         after_pause_method = self.pause.update(dt)
         if after_pause_method is not None:
             after_pause_method()

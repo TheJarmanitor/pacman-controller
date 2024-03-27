@@ -13,7 +13,19 @@ class Node(object):
             RIGHT: None,
             PORTAL: None
         }
+        self.access = {UP:[PACMAN, BLINKY, PINKY, INKY, CLYDE, FRUIT],
+                       DOWN:[PACMAN, BLINKY, PINKY, INKY, CLYDE, FRUIT],
+                       LEFT:[PACMAN, BLINKY, PINKY, INKY, CLYDE, FRUIT],
+                       RIGHT:[PACMAN, BLINKY, PINKY, INKY, CLYDE, FRUIT]}
         self.neighbors_cost = {}
+        
+    def deny_access(self, direction, entity):
+        if entity.name in self.access[direction]:
+            self.access[direction].remove(entity.name)
+
+    def allow_access(self, direction, entity):
+        if entity.name not in self.access[direction]:
+            self.access[direction].append(entity.name)
         
     def render(self, screen):
         for n in self.neighbors.keys():
@@ -44,6 +56,7 @@ class NodeGroup(object):
             for col in list(range(data.shape[1])):
                 if data[row][col] in self.node_symbols:
                     x, y = self.construct_key(col + xoffset, row + yoffset)
+                    x, y = int(x), int(y)
                     self.nodes_LUT[(x,y)] = Node(x, y)
                     
     def construct_key(self, x, y):
@@ -121,6 +134,38 @@ class NodeGroup(object):
     def get_start_temp_node(self):
         nodes = list(self.nodes_LUT.values())
         return nodes[0]
+    
+    def deny_access(self, col, row, direction, entity):
+        node = self.get_node_from_tiles(col, row)
+        if node is not None:
+            node.deny_access(direction, entity)
+
+    def allow_access(self, col, row, direction, entity):
+        node = self.get_node_from_tiles(col, row)
+        if node is not None:
+            node.allow_access(direction, entity)
+
+    def deny_access_list(self, col, row, direction, entities):
+        for entity in entities:
+            self.deny_access(col, row, direction, entity)
+
+    def allow_access_list(self, col, row, direction, entities):
+        for entity in entities:
+            self.allow_access(col, row, direction, entity)
+
+    def deny_home_access(self, entity):
+        self.nodes_LUT[self.homekey].deny_access(DOWN, entity)
+
+    def allow_home_access(self, entity):
+        self.nodes_LUT[self.homekey].allow_access(DOWN, entity)
+
+    def deny_home_access_list(self, entities):
+        for entity in entities:
+            self.deny_home_access(entity)
+
+    def allow_home_access_list(self, entities):
+        for entity in entities:
+            self.allow_home_access(entity)
                     
     def render(self, screen):
         for node in self.nodes_LUT.values():
@@ -137,26 +182,27 @@ class NodeGroup(object):
         return list_of_pixels[id]
     
     def get_neighors_obj(self, node):
-        node_obj = self.get_node_from_pixels(*node)
+        node_obj = self.get_node_from_pixels(node[0], node[1])
         return node_obj.neighbors 
             
-    def get_neigbors(self, node):
+    def get_neighbors(self, node):
         neighbors_obj = self.get_neighors_obj(node)
         values = neighbors_obj.values()
         neighbors_obj_2 = []
         for direction in values:
-            if not direction is None:
+            if direction is not None:
                 neighbors_obj_2.append(direction)
         list_neighbors = []
         for neighbor in neighbors_obj_2:
+            # print(self.get_pixels_from_node(neighbor))
             list_neighbors.append(self.get_pixels_from_node(neighbor))
         return list_neighbors
     
     def get_nodes(self):
-       cost_dict = {}
-       list_of_nodes_pixels = self.get_list_of_nodes_pixels() 
-       for node in list_of_nodes_pixels:
-        #    pixels = self.get_node_from_pixels(*node)
+        cost_dict = {}
+        list_of_nodes_pixels = self.get_list_of_nodes_pixels() 
+        for node in list_of_nodes_pixels:
+            # pixels = self.get_node_from_pixels(*node)
             neighbors = self.get_neighors_obj(node)
             temp_neighbors = neighbors.values()
             temp_list = []
@@ -167,4 +213,5 @@ class NodeGroup(object):
                     temp_list.append(None)
             
             cost_dict[node] = temp_list
-            return cost_dict
+            
+        return cost_dict

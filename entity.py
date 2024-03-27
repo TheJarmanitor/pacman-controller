@@ -5,9 +5,10 @@ from vector import Vector2
 from constants import *
 from random import randint, choice
 from algorithms import dijkstra_or_a_star
+from copy import deepcopy
 
 class Entity(object):
-    def __init__(self, node) -> None:
+    def __init__(self, node, nodes) -> None:
         self.name = None
         self.directions = {STOP:Vector2(),
                            DOWN:Vector2(0,1),
@@ -24,7 +25,10 @@ class Entity(object):
         self.visible = True
         self.goal = None
         self.set_start_node(node)
+        self.nodes = nodes
         self.enemy: Entity
+        
+        self.timer = 0
         
     def set_start_node(self, node):
         self.node = node
@@ -131,6 +135,13 @@ class Entity(object):
                 return True
         return False
     
+    def valid_direction(self, direction):
+        if direction is not STOP:
+            if self.name in self.node.access[direction]:
+                if self.node.neighbors[direction] is not None:
+                    return True
+        return False
+    
     def set_speed(self, speed):
         self.speed = speed * TILEWIDTH / 16
         
@@ -141,11 +152,11 @@ class Entity(object):
             
     def get_dijkstra_path(self, directions):
         last_enemy_node = self.enemy.target
-        last_enemy_node = self.nodes.get_pixel_from_node(last_enemy_node)
+        last_enemy_node = self.nodes.get_pixels_from_node(last_enemy_node)
         my_target = self.target
-        my_target = self.nodes.get_pixel_from_node(my_target)
+        my_target = self.nodes.get_pixels_from_node(my_target)
         
-        previous_nodes, _ = dijkstra_or_a_star(self.nodes, my_target, a_star=True)
+        previous_nodes, shortest_path = dijkstra_or_a_star(self.nodes, my_target, a_star=True)
         
         path = []
         node = last_enemy_node
@@ -162,7 +173,7 @@ class Entity(object):
     def goal_direction_dijkstra(self, directions):
         path = self.get_dijkstra_path(directions)
         my_target = self.target
-        my_target = self.nodes.get_pixel_from_node(my_target)
+        my_target = self.nodes.get_pixels_from_node(my_target)
         
         path.append(my_target)
         

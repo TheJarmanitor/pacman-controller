@@ -18,36 +18,42 @@ class Action(object):
         
     def get_goal_change(self, goal):
         raise NotImplementedError()
+
+'''
+Goal 1: Hunt all ghosts
+    action 1: get to super pellet
+    action 2: go to each ghost's quadrant
+Goal 2: Eat pellets
+    action 1: go to new quadrant
+    action 2: wander around
+    action 3: go to close corner
+Goal 3: Eat Fruit
+    action 1: go to fruit
+    action 2: wander around
     
-class FollowPathToTarget(Action):
+    
+    
+
+'''
+#### Goal 1 actions
+class FollowPathToSuperPellet(Action):
     def __init__(self, name) -> None:
         super().__init__(name)
         self.value = 5
         
     def get_goal_change(self, goal):
-        if goal.name == KILL_GHOST:
+        if goal.name == HUNT_GHOSTS:
             goal.value -= self.value
         else:
             goal.value += 100
             
-class StayInQuadrant(Action):
+class GoToTargetQuadrant(Action):
     def __init__(self, name) -> None:
         super().__init__(name)
         self.value = 4
         
     def get_goal_change(self, goal):
-        if goal.name == KILL_GHOST:
-            goal.value -= self.value
-        else:
-            goal.value += 100
-            
-class Accelerate(Action):
-    def __init__(self, name) -> None:
-        super().__init__(name)
-        self.value = 2
-        
-    def get_goal_change(self, goal):
-        if goal.name == KILL_GHOST:
+        if goal.name == HUNT_GHOSTS:
             goal.value -= self.value
         else:
             goal.value += 100
@@ -55,10 +61,10 @@ class Accelerate(Action):
 class VisitNewQuadrant(Action):
     def __init__(self, name) -> None:
         super().__init__(name)
-        self.value = 4
+        self.value = 3
         
     def get_goal_change(self, goal):
-        if goal.name == EAT_SUPERPELLETS:
+        if goal.name == EAT_PELLETS:
             goal.value -= self.value
         else:
             goal.value += 100
@@ -69,7 +75,7 @@ class Wander(Action):
         self.value = 10
         
     def get_goal_change(self, goal):
-        if goal.name == EAT_SUPERPELLETS:
+        if goal.name == EAT_PELLETS:
             goal.value -= self.value
         else:
             goal.value += 100
@@ -80,7 +86,18 @@ class GoCloseCorner(Action):
         self.value = 2
         
     def get_goal_change(self, goal):
-        if goal.name == EAT_SUPERPELLETS:
+        if goal.name == EAT_PELLETS:
+            goal.value -= self.value
+        else:
+            goal.value += 100
+
+class GoToFruit(Action):
+    def __init__(self, name) -> None:
+        super().__init__(name)
+        self.value = 10
+        
+    def get_goal_change(self, goal):
+        if goal.name == EAT_PELLETS:
             goal.value -= self.value
         else:
             goal.value += 100

@@ -1,5 +1,5 @@
 from goal_actions import Goal, Action
-from copy import deepcopy
+from copy import copy
 
 class WorldModel(object):
     
@@ -7,6 +7,7 @@ class WorldModel(object):
         self.goals = goals
         self.actions = actions
         self.timer = timer
+        self.unvisited_actions = copy(self.actions)
         
         self.set_highest_goal()
         
@@ -17,8 +18,9 @@ class WorldModel(object):
         return self.highest_goal.get_discontentment()
     
     def next_action(self) -> Action | None:
-        current_actions = deepcopy(self.actions)
-        return current_actions.pop(0) if current_actions else None
+        if len(self.unvisited_actions) > 0:
+            return self.unvisited_actions.pop(0)
+        return None
     
     def apply_action(self, action: Action) -> None:
         action.get_goal_change(self.highest_goal)

@@ -46,15 +46,15 @@ PAUSETXT = 3
 GAMEOVERTXT = 4
 
 
-KILL_GHOST = "Kill Ghost"
-EAT_SUPERPELLETS = "Eat SuperPellets"
+HUNT_GHOSTS= "Huns Ghosts"
+EAT_PELLETS = "Eat Pellets"
 
-FOLLOW_PATH_TO_TARGET = "Follow Path to Target"
+FOLLOW_PATH_TO_SUPERPELLET = "Follow Path to Superpellet"
 GO_TO_TARGET_QUADRANT = "Go To Target Quadrant"
-ACCELERATE = "Accelerate"
 VISIT_NEW_QUADRANT = "Visit New Quadrant"
 WANDER = "Wander"
 GO_CLOSE_CORNER = "Go Close Corner"
+GO_TO_FRUIT = "Go To Fruit"
 DUMMY = "Dummy"
 
 TOP_LEFT = 1

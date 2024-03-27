@@ -7,23 +7,25 @@ from random import choice
 from GOAP import GOAP
 
 class Pacman(Entity):
-    def __init__(self, node) -> None:
-        Entity.__init__(self, node)
+    def __init__(self, node, nodes) -> None:
+        Entity.__init__(self, node, nodes)
         self.name = PACMAN
         self.color = YELLOW
         self.direction = LEFT
         self.set_between_nodes(LEFT)
         self.alive = True
-        
         self.goal = Vector2()
         self.direction_method = self.wander_biased
-        
+        self.use_GOAP = True 
         self.GOAP = GOAP(depth=3)
         self.GOAP_timer = 0
-        self.kill_flag = False
-        self.killed_timer = 0
+        self.hunt_mode = False
+        self.hunt_timer = 0
+        self.close_ghost_amount = 0
+        self.fruit = None
+        self.superpellet = None
+        self.ghosts = None
         
-        self.acc_timer = 0
         
     def reset(self):
         Entity.reset(self)
@@ -46,19 +48,38 @@ class Pacman(Entity):
         closest_disance = 1000
         closest_ghost = None
         for ghost in ghosts:
-            distance = self.position - ghost.position
-            if distance.magnitude() < closest_disance:
-                closest_disance = distance.magnitude()
-                closest_ghost = ghost
+            if ghost.mode.current is not SPAWN:
+                distance = self.position - ghost.position
+                if distance.magnitude() < closest_disance:
+                    closest_disance = distance.magnitude()
+                    closest_ghost = ghost
         return closest_ghost
+    
+    def get_closest_superpellet(self, superpellets):
+        closest_distance = 1000
+        closest_pellet = None
+        for pellet in superpellets:
+            distance = self.position - pellet.position
+            if distance.magnitude() < closest_distance:
+                closest_distance = distance.magnitude()
+                closest_pellet = pellet
+        return closest_pellet
+    
+    def close_ghosts(self, ghosts):
+        counter = 0
+        ghost_magnitudes = [(self.position - ghost.position).magnitude() for ghost in ghosts]
+        
+        magnitude_counts = sum(i  < 50 for i in ghost_magnitudes)
+        
+        
+        return magnitude_counts
         
     def update(self, dt):
-        self.exec_GOAP(dt)
-        self.goal = self.ghost.position
-        self.GOAP_timer += dt
-        self.killed_timer += dt
-        self.timer += dt
-        self.acc_timer += dt
+        if self.use_GOAP:
+            self.exec_GOAP(dt)
+            self.GOAP_timer += dt
+            self.hunt_timer += dt
+            self.timer += dt
         self.position += self.directions[self.direction]*self.speed*dt
         # direction = self.get_valid_key()
         
@@ -112,15 +133,14 @@ class Pacman(Entity):
             return True
         return False
     
-    def update_kill_flag(self):
-        if self.kill_flag:
-            if int(self.killed_timer) >= 7:
-                self.kill_flag = False
+    def update_hunt_mode(self):
+        if self.hunt_mode:
+            if int(self.hunt_timer) >= 7:
+                self.hunt_mode = False
         else:
-            enemy_distance = self.position - self.enemy.position
-            if enemy_distance.magnitude() < 10:
-                self.kill_flag = True
-                self.killed_timer = 0
+            if self.close_ghost_amount >= 2:
+                self.hunt_mode = True
+                self.hunt_timer = 0
                 
     def update_quadrant(self, check_position):
         left_half = check_position.x <= (SCREENWIDTH / 2)
@@ -138,45 +158,55 @@ class Pacman(Entity):
                 return BOT_RIGHT
             
     def exec_GOAP(self, dt):
-        self.update_kill_flag()
+        self.update_hunt_mode()
+        
+        self.enemy = self.get_closest_ghost(self.ghosts)
+        self.close_ghost_amount = self.close_ghosts(self.ghosts)
+        
+        
         self.quadrant = self.update_quadrant(self.position)
         self.enemy_quadrant = self.update_quadrant(self.enemy.position)
+        close_superpellet = self.get_closest_superpellet(self.superpellet)
+        print(close_superpellet.position)
+        
+        
+        super_close = (self.position - close_superpellet.position).magnitude() < 100
+        fruit_present = self.fruit is not None
+        print(super_close, fruit_present)
         next_action = self.GOAP.run(
-            self.kill_flag,
+            self.hunt_mode,
             self.quadrant,
             self.enemy_quadrant,
+            super_close,
+            fruit_present,
             dt
         )
         
         if next_action is not None:
-            if next_action.name == FOLLOW_PATH_TO_TARGET:
-                self.exec_follow_target(self.enemy)
+            if next_action.name == FOLLOW_PATH_TO_SUPERPELLET:
+                self.exec_follow_target()
             elif next_action.name == GO_TO_TARGET_QUADRANT:
                 self.exec_go_to_target_quad()
-            elif next_action.name == ACCELERATE:
-                self.exec_accelerate()
+
             elif next_action.name == VISIT_NEW_QUADRANT:
                 self.exec_visit_new_quadrant()
             elif next_action.name == WANDER:
                 self.exec_wander()
             elif next_action.name == GO_CLOSE_CORNER:
                 self.exec_go_close_corner()
+            elif next_action.name == GO_TO_FRUIT:
+                self.exec_follow_fruit()
             else:
                 self.exec_dummy()
                 
+        print(next_action.name)
+                
     def exec_follow_target(self):
-        self.direction_method = self.goal_direction_dijkstra
-        self.goal = self.enemy.position
+        self.direction_method = self.goal_direction
+        self.goal = self.get_closest_superpellet(self.superpellet).position
         
     def exec_go_to_target_quad(self):
-        self.goal = self.goal_quadrant(self.quadrant)
-        
-    def exec_accelerate(self):
-        if self.acc_timer <= 3:
-            self.speed = 200
-        else:
-            self.speed = 150
-            self.acc_timer = 0
+        self.goal = self.goal_quadrant(self.enemy_quadrant)
             
     def exec_visit_new_quadrant(self):
         quads = [TOP_LEFT, TOP_RIGHT, BOT_LEFT, BOT_RIGHT]
@@ -185,11 +215,15 @@ class Pacman(Entity):
         self.goal = self.goal_quadrant(quad)
         return quad
     
-    def exec_Wansder(self):
+    def exec_wander(self):
         self.direction_method = self.wander_biased
         
     def exec_go_close_corner(self):
         self.goal = self.goal_quadrant(self.quadrant)
+        
+    def exec_follow_fruit(self):
+        self.direction_method = self.goal_direction
+        self.goal = self.fruit.position
         
         
     def goal_quadrant(self, quadrant):

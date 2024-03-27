@@ -6,8 +6,8 @@ from entity import Entity
 from modes import ModeController
 
 class Ghost(Entity):
-    def __init__(self, node, pacman=None, blinky=None) -> None:
-        Entity.__init__(self, node)
+    def __init__(self, node, nodes=None, pacman=None, blinky=None) -> None:
+        Entity.__init__(self, node, nodes)
         self.name = GHOST
         self.poinst = 200
         self.goal = Vector2()
@@ -61,17 +61,18 @@ class Ghost(Entity):
         self.color = self.start_color
         self.set_speed(100)
         self.direction_method = self.goal_direction
+        self.homenode.deny_access(DOWN, self)
         
 class Blinky(Ghost):
-    def __init__(self, node, pacman=None, blinky=None) -> None:
-        Ghost.__init__(self, node, pacman, blinky)
+    def __init__(self, node, nodes, pacman=None, blinky=None) -> None:
+        Ghost.__init__(self, node, nodes, pacman, blinky)
         self.name = BLINKY
         self.color = RED
         self.start_color = RED
         
 class Pinky(Ghost):
-    def __init__(self, node, pacman=None, blinky=None) -> None:
-        Ghost.__init__(self, node, pacman, blinky)
+    def __init__(self, node, nodes, pacman=None, blinky=None) -> None:
+        Ghost.__init__(self, node, nodes, pacman, blinky)
         self.name = PINKY
         self.color = PINK
         self.start_color = PINK
@@ -83,8 +84,8 @@ class Pinky(Ghost):
         self.goal = self.pacman.position + self.pacman.directions[self.pacman.direction] * TILEWIDTH * 4
         
 class Inky(Ghost):
-    def __init__(self, node, pacman=None, blinky=None) -> None:
-        Ghost.__init__(self, node, pacman, blinky)
+    def __init__(self, node, nodes, pacman=None, blinky=None) -> None:
+        Ghost.__init__(self, node, nodes, pacman, blinky)
         self.name = INKY
         self.color = TEAL
         self.start_color = TEAL
@@ -98,8 +99,8 @@ class Inky(Ghost):
         self.goal = self.blinky.position + vec_2
         
 class Clyde(Ghost):
-    def __init__(self, node, pacman=None, blinky=None) -> None:
-        Ghost.__init__(self, node, pacman, blinky)
+    def __init__(self, node, nodes, pacman=None, blinky=None) -> None:
+        Ghost.__init__(self, node, nodes, pacman, blinky)
         self.name = CLYDE
         self.color = ORANGE
         self.start_color = ORANGE
@@ -117,11 +118,11 @@ class Clyde(Ghost):
 
 
 class GhostGroup(object):
-    def __init__(self, node, pacman) -> None:
-        self.blinky = Blinky(node, pacman)
-        self.pinky = Pinky(node, pacman)
-        self.inky = Inky(node, pacman, self.blinky)
-        self.clyde = Clyde(node, pacman)
+    def __init__(self, node, nodes, pacman) -> None:
+        self.blinky = Blinky(node, nodes, pacman=pacman)
+        self.pinky = Pinky(node, nodes, pacman=pacman)
+        self.inky = Inky(node, nodes, pacman=pacman, blinky=self.blinky)
+        self.clyde = Clyde(node, nodes, pacman=pacman)
         self.ghosts = [self.blinky, self.pinky, self.inky, self.clyde]
         
     def __iter__(self):

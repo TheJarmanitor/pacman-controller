@@ -3,8 +3,8 @@ from entity import Entity
 from constants import *
 
 class Fruit(Entity):
-    def __init__(self, node) -> None:
-        Entity.__init__(self, node)
+    def __init__(self, node, nodes) -> None:
+        Entity.__init__(self, node, nodes)
         self.name = FRUIT
         self.color = GREEN
         self.lifespan = 5
