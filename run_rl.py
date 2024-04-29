@@ -35,6 +35,7 @@ class GameController(object):
         self.fruit_node = None
         self.maze = MazeController()
         self.mazedata = MazeData()######
+        self.game_over = False
         
         self.reward = 0
 
@@ -102,8 +103,8 @@ class GameController(object):
 
         
 
-    def update(self):
-        dt = self.clock.tick(30) / 1000.0
+    def update(self, speedup=1):
+        dt = self.clock.tick(60) * speedup / 1000.0 
         self.textgroup.update(dt)
         self.pellets.update(dt)
         if not self.pause.paused:
@@ -164,9 +165,11 @@ class GameController(object):
             if pellet.name == POWERPELLET:
                 self.ghosts.start_freight()
             if self.pellets.is_empty():
+                self.reward +=100
+                self.game_over = True
                 self.flash_bg = True
                 self.hide_entities()
-                self.pause.set_pause(pause_time=3, func=self.next_level)
+                self.pause.set_pause(pause_time=3, func=self.restart_game)
 
     def check_ghost_events(self):
         for ghost in self.ghosts:
@@ -175,7 +178,7 @@ class GameController(object):
                     self.pacman.visible = False
                     ghost.visible = False
                     self.update_score(ghost.points)                 
-                    self.reward += 10 
+                    self.reward += 25 
                     self.textgroup.add_text(str(ghost.points), WHITE, ghost.position.x, ghost.position.y, 8, time=1)
                     self.ghosts.update_points()
                     self.pause.set_pause(pause_time=1, func=self.show_entities)
@@ -184,12 +187,13 @@ class GameController(object):
                 elif ghost.mode.current is not SPAWN:
                     if self.pacman.alive:
                         self.lives -=  1
-                        self.reward -= 5
+                        self.reward -= 25
                         self.lifesprites.remove_image()
                         self.pacman.die()               
                         self.ghosts.hide()
                         if self.lives <= 0:
-                            self.reward -= 5
+                            self.reward -= 100
+                            self.game_over = True
                             self.textgroup.show_text(GAMEOVERTXT)
                             self.pause.set_pause(pause_time=0.1, func=self.restart_game)
                         else:
@@ -232,12 +236,13 @@ class GameController(object):
 
     def restart_game(self):
         self.lives = 5
+        # self.game_over = False updating in the environment file
         self.level = 0
-        self.reward = 0
+        # self.reward = 0 updating in the environment file
         self.pause.paused = False
         self.fruit = None
         self.start_game()
-        self.score = 0
+        # self.score = 0 updating in the environment file
         self.textgroup.update_score(self.score)
         self.textgroup.update_level(self.level)
         self.textgroup.show_text(READYTXT)
