@@ -98,6 +98,8 @@ class Pacman(Entity):
             return LEFT
         if action[3] == 1:
             return RIGHT
+        if action[4] == 1:
+            return self.direction
         return STOP
 
     def eat_pellets(self, pellet_list):

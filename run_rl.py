@@ -155,7 +155,7 @@ class GameController(object):
         pellet = self.pacman.eat_pellets(self.pellets.pellet_list)
         if pellet:
             self.pellets.num_eaten += 1
-            self.reward +=1
+            self.reward += 1
             self.update_score(pellet.points)
             if self.pellets.num_eaten == 30:
                 self.ghosts.inky.start_node.allow_access(RIGHT, self.ghosts.inky)
@@ -165,7 +165,7 @@ class GameController(object):
             if pellet.name == POWERPELLET:
                 self.ghosts.start_freight()
             if self.pellets.is_empty():
-                self.reward +=100
+                self.reward +=1000
                 self.game_over = True
                 self.flash_bg = True
                 self.hide_entities()
@@ -178,7 +178,7 @@ class GameController(object):
                     self.pacman.visible = False
                     ghost.visible = False
                     self.update_score(ghost.points)                 
-                    self.reward += 25 
+                    self.reward += 100 
                     self.textgroup.add_text(str(ghost.points), WHITE, ghost.position.x, ghost.position.y, 8, time=1)
                     self.ghosts.update_points()
                     self.pause.set_pause(pause_time=1, func=self.show_entities)
@@ -187,12 +187,12 @@ class GameController(object):
                 elif ghost.mode.current is not SPAWN:
                     if self.pacman.alive:
                         self.lives -=  1
-                        self.reward -= 25
+                        # self.reward -= 10
                         self.lifesprites.remove_image()
                         self.pacman.die()               
                         self.ghosts.hide()
                         if self.lives <= 0:
-                            self.reward -= 100
+                            self.reward -= 10
                             self.game_over = True
                             self.textgroup.show_text(GAMEOVERTXT)
                             self.pause.set_pause(pause_time=0.1, func=self.restart_game)
@@ -203,7 +203,7 @@ class GameController(object):
         if self.pellets.num_eaten == 50 or self.pellets.num_eaten == 140:
             if self.fruit is None:
                 self.fruit = Fruit(self.nodes.get_node_from_tiles(9, 20), self.level)
-                print(self.fruit)
+                # print(self.fruit)
         if self.fruit is not None:
             if self.pacman.collide_check(self.fruit):
                 self.update_score(self.fruit.points)

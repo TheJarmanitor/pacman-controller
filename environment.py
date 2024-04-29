@@ -9,12 +9,12 @@ import torch
 
 MAX_MEMORY = 100_000
 BATCH_SIZE = 1000
-LR = 0.001
+LR = 0.00005
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class Environment:
-    def __init__(self, model=None, lr=0.001, gamma=0.9, epsilon=1000):
+    def __init__(self, model=None, lr=0.001, gamma=0.9, epsilon=100):
         self.n_games = 0
         self.lr = lr
         self.gamma = gamma
@@ -34,7 +34,12 @@ class Environment:
         blinky_mode = 1.0 if game.ghosts.blinky.mode.current == FREIGHT else 0.0
         clyde_position = game.ghosts.clyde.position
         clyde_mode = 1.0 if game.ghosts.clyde.mode.current == FREIGHT else 0.0
-        pellets_eaten = game.pellets.num_eaten
+        
+        #get closest pellet position
+        closest_pellet = min(game.pellets.pellet_list, key=lambda x: (player_position - x.position).magnitude())
+        closest_powerpellet = min(game.pellets.powerpellets, key=lambda x: (player_position - x.position).magnitude())
+        
+        
         lives = game.lives
         return(
             player_direction,
@@ -44,7 +49,8 @@ class Environment:
             blinky_position.x, blinky_position.y,
             clyde_position.x, clyde_position.y,
             pinky_mode, inky_mode, blinky_mode, clyde_mode,
-            pellets_eaten, lives
+            closest_pellet.position.x, closest_pellet.position.y,
+            closest_powerpellet.position.x, closest_powerpellet.position.y
             )
         
         
@@ -66,10 +72,10 @@ class Environment:
         self.trainer.train_step(state, action, reward, next_state, done)
         
     def get_action(self, state):
-        temp_epsilon = self.epsilon - self.n_games
-        final_move = [0,0,0,0]
+        temp_epsilon = self.epsilon - (self.n_games//2)
+        final_move = [0,0,0,0,0]
         
-        if np.random.randint(0,2000) < temp_epsilon:
+        if np.random.randint(0,200) < temp_epsilon:
             move = np.random.randint(0,4)
             final_move[move] = 1
         else:
@@ -88,48 +94,66 @@ class Environment:
             
     
             
-def train(model):
+def train(model, max_games=10000):
     plot_scores = []
     plot_mean_scores = []
     total_score = 0
+    plot_rewards = []
+    plot_mean_rewards = []
+    total_reward = 0
     record = 0
-    env  = Environment(model=model, lr=LR, )
+    env  = Environment(model=model, lr=LR, epsilon=1000)
     game = GameController()
     game.start_game()
-    while True:
-        # get old state
-        state_old = env.get_state(game)
+    for i in range(max_games):
+        while True:
+            # get old state
+            state_old = env.get_state(game)
 
-        # get move
-        final_move = env.get_action(state_old)
+            # get move
+            final_move = env.get_action(state_old)
 
-        # perform move and get new state
-        env.take_action(game, final_move)
-        
-        #update game state
-        game.update(speedup=10)
-        #get new state
-        state_new = env.get_state(game)
-        reward, done, score = env.get_step(game)
-
-        # train short memory
-        env.train_short_memory(state_old, final_move, reward, state_new, done)
-
-        # remember
-        env.remember(state_old, final_move, reward, state_new, done)
-
-        if done:
-            # train long memory, plot result
-            env.n_games += 1
-            env.train_long_memory()
+            # perform move and get new state
+            # if random.uniform(0,1) < walk_length:
+            #     env.take_action(game, final_move)
+            env.take_action(game, final_move)
             
-            if score > record:
-                record = score
-                env.model.save(root_dir="./")
-            print('Game', env.n_games, 'Score', score, 'Record:', record)
-            game.reward = 0
-            game.score = 0
-            game.game_over = False
+            game.update(speedup=10)
+            #get new state
+            state_new = env.get_state(game)
+            reward, done, score = env.get_step(game)
+
+            # train short memory
+            env.train_short_memory(state_old, final_move, reward, state_new, done)
+
+            # remember
+            env.remember(state_old, final_move, reward, state_new, done)
+
+            if done:
+                # train long memory, plot result
+                env.n_games += 1
+                env.train_long_memory()
+                plot_scores.append(score)
+                total_score += score
+                mean_score = total_score / env.n_games
+                plot_mean_scores.append(mean_score)
+                
+                plot_rewards.append(reward)
+                total_reward += reward
+                mean_reward = total_reward / env.n_games
+                plot_mean_rewards.append(mean_reward)
+                
+                
+                
+                
+                if mean_reward > record:
+                    record = mean_reward
+                    env.model.save(root_dir="./")
+                print('Game', env.n_games, 'Mean Score', mean_score, 'reward', reward, 'Mean Reward', mean_reward, 'Record', record)
+                game.reward = 0
+                game.score = 0
+                game.game_over = False
+                break
 
     
         
@@ -139,6 +163,6 @@ def train(model):
 
 if __name__ == "__main__":
     
-    model = FcNet(17, 4)
+    model = FcNet(19, 5)
     train(model)
         
