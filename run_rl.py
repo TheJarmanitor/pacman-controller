@@ -22,7 +22,7 @@ class GameController(object):
         self.background_flash = None
         self.clock = pygame.time.Clock()
         self.fruit = None
-        self.pause = Pause(True)
+        self.pause = Pause(False)
         self.level = 0
         self.lives = 5
         self.score = 0
@@ -35,6 +35,8 @@ class GameController(object):
         self.fruit_node = None
         self.maze = MazeController()
         self.mazedata = MazeData()######
+        
+        self.reward = 0
 
     def set_background(self):
         self.background_norm = pygame.surface.Surface(SCREENSIZE).convert()
@@ -137,21 +139,22 @@ class GameController(object):
         for event in pygame.event.get():
             if event.type == QUIT:
                 exit()
-            elif event.type == KEYDOWN:
-                if event.key == K_SPACE:
-                    if self.pacman.alive:
-                        self.pause.set_pause(player_paused=True)
-                        if not self.pause.paused:
-                            self.textgroup.hide_text()
-                            self.show_entities()
-                        else:
-                            self.textgroup.show_text(PAUSETXT)
+            # elif event.type == KEYDOWN:
+            #     if event.key == K_SPACE:
+            #         if self.pacman.alive:
+            #             self.pause.set_pause(player_paused=True)
+            #             if not self.pause.paused:
+            #                 self.textgroup.hide_text()
+            #                 self.show_entities()
+            #             else:
+            #                 self.textgroup.show_text(PAUSETXT)
                             #self.hide_entities()
 
     def check_pellet_events(self):
         pellet = self.pacman.eat_pellets(self.pellets.pellet_list)
         if pellet:
             self.pellets.num_eaten += 1
+            self.reward +=1
             self.update_score(pellet.points)
             if self.pellets.num_eaten == 30:
                 self.ghosts.inky.start_node.allow_access(RIGHT, self.ghosts.inky)
@@ -171,7 +174,8 @@ class GameController(object):
                 if ghost.mode.current is FREIGHT:
                     self.pacman.visible = False
                     ghost.visible = False
-                    self.update_score(ghost.points)                  
+                    self.update_score(ghost.points)                 
+                    self.reward += 10 
                     self.textgroup.add_text(str(ghost.points), WHITE, ghost.position.x, ghost.position.y, 8, time=1)
                     self.ghosts.update_points()
                     self.pause.set_pause(pause_time=1, func=self.show_entities)
@@ -180,14 +184,16 @@ class GameController(object):
                 elif ghost.mode.current is not SPAWN:
                     if self.pacman.alive:
                         self.lives -=  1
+                        self.reward -= 5
                         self.lifesprites.remove_image()
                         self.pacman.die()               
                         self.ghosts.hide()
                         if self.lives <= 0:
+                            self.reward -= 5
                             self.textgroup.show_text(GAMEOVERTXT)
-                            self.pause.set_pause(pause_time=3, func=self.restart_game)
+                            self.pause.set_pause(pause_time=0.1, func=self.restart_game)
                         else:
-                            self.pause.set_pause(pause_time=3, func=self.reset_level)
+                            self.pause.set_pause(pause_time=0.1, func=self.reset_level)
     
     def check_fruit_events(self):
         if self.pellets.num_eaten == 50 or self.pellets.num_eaten == 140:
@@ -227,7 +233,8 @@ class GameController(object):
     def restart_game(self):
         self.lives = 5
         self.level = 0
-        self.pause.paused = True
+        self.reward = 0
+        self.pause.paused = False
         self.fruit = None
         self.start_game()
         self.score = 0
@@ -238,7 +245,7 @@ class GameController(object):
         self.fruit_captured = []
 
     def reset_level(self):
-        self.pause.paused = True
+        self.pause.paused = False   
         self.pacman.reset()
         self.ghosts.reset()
         self.fruit = None

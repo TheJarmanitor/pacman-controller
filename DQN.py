@@ -41,6 +41,13 @@ class Trainer():
 
         self.criterion = nn.MSELoss() if not criterion else criterion
         
+    def train_step(self, state, action, reward, next_state):
+        state = torch.tensor(state, dtype=torch.float)
+        action = torch.tensor(action, dtype=torch.float)
+        reward = torch.tensor(reward, dtype=torch.float)
+        
+        
+        
         
         
     
