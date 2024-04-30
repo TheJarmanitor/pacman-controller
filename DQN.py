@@ -13,13 +13,15 @@ class FcNet(nn.Module):
     def __init__(self, state_space, action_space):
         super(FcNet, self).__init__()
         self.fc1 = nn.Linear(state_space, 128)
-        self.fc2 = nn.Linear(128, 128)
-        self.fc3 = nn.Linear(128, action_space)
+        self.fc2 = nn.Linear(128, 256)
+        self.fc3 = nn.Linear(256, 128)
+        self.fc4 = nn.Linear(128, action_space)
         
     def forward(self, x):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
-        x = self.fc3(x)
+        x = F.relu(self.fc3(x))
+        x = self.fc4(x)
         return x
     
     def save(self, filename="model.pth", root_dir="./models"):
@@ -34,18 +36,19 @@ class Trainer():
         self.lr = lr
         self.gamma = gamma
 
-        self.optimizer = optim.Adam(
-            self.model.parameters(), 
-            lr=self.lr
-            ) if not optimizer else optimizer
+        self.optimizer = optim.RMSprop(self.model.parameters(), 
+                                  lr=lr, 
+                                  alpha=0.95, 
+                                  eps=0.01) if not optimizer else optimizer
 
-        self.criterion = nn.MSELoss() if not criterion else criterion
+        self.criterion = nn.SmoothL1Loss() if not criterion else criterion
         
     def train_step(self, state, action, reward, next_state, done):
         state = torch.tensor(state, dtype=torch.float)
         next_state = torch.tensor(next_state, dtype=torch.float)
         action = torch.tensor(action, dtype=torch.float)
         reward = torch.tensor(reward, dtype=torch.float)
+        policy_net = self.model
         
         if len(state.shape) == 1:
 
@@ -57,7 +60,7 @@ class Trainer():
         
         pred = self.model(state)
         
-        target = pred.clone()
+        target = policy_net(state)
         for idx in range(len(done)):
             Q_new = reward[idx]
             if not done[idx]:
