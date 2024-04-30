@@ -103,10 +103,10 @@ class GameController(object):
 
         
 
-    def update(self, speedup=1):
-        dt = self.clock.tick(60) * speedup / 1000.0 
+    def update(self,dt):
         self.textgroup.update(dt)
         self.pellets.update(dt)
+        self.reward = 0
         if not self.pause.paused:
             self.ghosts.update(dt)      
             if self.fruit is not None:
@@ -115,6 +115,7 @@ class GameController(object):
             self.check_ghost_events()
             self.check_fruit_events()
 
+        
         if self.pacman.alive:
             if not self.pause.paused:
                 self.pacman.update(dt)
@@ -155,7 +156,7 @@ class GameController(object):
         pellet = self.pacman.eat_pellets(self.pellets.pellet_list)
         if pellet:
             self.pellets.num_eaten += 1
-            self.reward += 1
+            self.reward = 1
             self.update_score(pellet.points)
             if self.pellets.num_eaten == 30:
                 self.ghosts.inky.start_node.allow_access(RIGHT, self.ghosts.inky)
@@ -165,7 +166,7 @@ class GameController(object):
             if pellet.name == POWERPELLET:
                 self.ghosts.start_freight()
             if self.pellets.is_empty():
-                self.reward +=1000
+                self.reward = 100
                 self.game_over = True
                 self.flash_bg = True
                 self.hide_entities()
@@ -178,7 +179,7 @@ class GameController(object):
                     self.pacman.visible = False
                     ghost.visible = False
                     self.update_score(ghost.points)                 
-                    self.reward += 100 
+                    self.reward = 10 
                     self.textgroup.add_text(str(ghost.points), WHITE, ghost.position.x, ghost.position.y, 8, time=1)
                     self.ghosts.update_points()
                     self.pause.set_pause(pause_time=1, func=self.show_entities)
@@ -187,12 +188,12 @@ class GameController(object):
                 elif ghost.mode.current is not SPAWN:
                     if self.pacman.alive:
                         self.lives -=  1
-                        # self.reward -= 10
+                        self.reward = -5
                         self.lifesprites.remove_image()
                         self.pacman.die()               
                         self.ghosts.hide()
                         if self.lives <= 0:
-                            self.reward -= 10
+                            self.reward = -10
                             self.game_over = True
                             self.textgroup.show_text(GAMEOVERTXT)
                             self.pause.set_pause(pause_time=0.1, func=self.restart_game)
@@ -259,6 +260,9 @@ class GameController(object):
     def update_score(self, points):
         self.score += points
         self.textgroup.update_score(self.score)
+    
+    def play_step(self):
+        return self.reward, self.game_over, self.score
 
     def render(self):
         self.screen.blit(self.background, (0, 0))

@@ -1,5 +1,5 @@
 from run_rl import GameController
-from DQN import FcNet, Trainer
+from DQN import FcNet, ConvNet, Trainer
 from collections import deque
 from constants import FREIGHT
 
@@ -7,12 +7,17 @@ import random
 import numpy as np
 import torch
 from vector import Vector2
+import pygame
+
+import cv2
+from torchvision import transforms
+from PIL import Image
+
 
 MAX_MEMORY = 100_000
 BATCH_SIZE = 1000
 LR = 0.0001
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class Environment:
     def __init__(self, model=None, lr=0.001, gamma=0.9, epsilon=0.8):
@@ -27,18 +32,7 @@ class Environment:
         self.trainer = Trainer(model, lr, gamma)
         
     def get_state(self, game):
-        def translate_valid_directions(valid_directions):
-            valid_translation = [0,0,0,0]
-            if 1 in valid_directions:
-                valid_translation[0] = 1
-            if -1 in valid_directions:
-                valid_translation[1] = 1
-            if 2 in valid_directions:
-                valid_translation[2] = 1
-            if -2 in valid_directions:
-                valid_translation[3] = 1
-            return valid_translation
-        player_direction = game.pacman.direction
+
         player_position = game.pacman.position
         blinky_position = game.ghosts.blinky.position
         blinky_mode = 1.0 if game.ghosts.blinky.mode.current == FREIGHT else 0.0
@@ -53,10 +47,8 @@ class Environment:
         closest_pellet = min(game.pellets.pellet_list, key=lambda x: (player_position - x.position).magnitude())
         closest_powerpellet = min(game.pellets.powerpellets, key=lambda x: (player_position - x.position).magnitude())
         
-        valid_directions = translate_valid_directions(game.pacman.valid_directions())
         
         return(
-            player_direction,
             player_position.x, player_position.y,
             pinky_position.x, pinky_position.y,
             inky_position.x, inky_position.y, 
@@ -65,8 +57,23 @@ class Environment:
             closest_pellet.position.x, closest_pellet.position.y,
             closest_powerpellet.position.x, closest_powerpellet.position.y,
             pinky_mode, inky_mode, blinky_mode, clyde_mode,
-            valid_directions[0], valid_directions[1], valid_directions[2], valid_directions[3],
             )
+    def get_state_conv(self, game):
+        
+        capture = pygame.surfarray.array3d(game.screen)
+        capture = capture.transpose([1,0,2])
+        capture_bgr = cv2.cvtColor(capture, cv2.COLOR_RGB2BGR)
+        
+        image_state = Image.fromarray(capture_bgr)
+        
+        transform = transforms.Compose([
+                    transforms.Resize((64, 64)),
+                    transforms.ToTensor(),
+                ])
+        
+        transformed_capture = transform(image_state)
+        
+        return transformed_capture
         
         
     def remember(self, state, action, reward, next_state, done):
@@ -77,7 +84,6 @@ class Environment:
             mini_sample = random.sample(self.memory, BATCH_SIZE) # list of tuples
         else:
             mini_sample = self.memory
-
         states, actions, rewards, next_states, dones = zip(*mini_sample)
         self.trainer.train_step(states, actions, rewards, next_states, dones)
         #for state, action, reward, nexrt_state, done in mini_sample:
@@ -86,79 +92,79 @@ class Environment:
     def train_short_memory(self, state, action, reward, next_state, done):
         self.trainer.train_step(state, action, reward, next_state, done)
         
-    def get_action(self, state):
+    def get_action(self, state, pretrained=False):
         
         final_move = [0,0,0,0,0]
         
-        if random.uniform(0,1) < self.epsilon:
-            move = np.random.randint(0,4)
-            final_move[move] = 1
+        if not pretrained:
+            if random.uniform(0,1) < self.epsilon:
+                move = np.random.randint(0,4)
+                final_move[move] = 1
+            else:
+                state0 = torch.tensor(state, dtype=torch.float)
+                prediction = self.model(state0)
+                move = torch.argmax(prediction).item()
+                final_move[move] = 1  
         else:
             state0 = torch.tensor(state, dtype=torch.float)
             prediction = self.model(state0)
             move = torch.argmax(prediction).item()
-            final_move[move] = 1  
-        
+            final_move[move] = 1
             
         return final_move
-        
-    def get_step(self, game):
-        
-        return game.reward, game.game_over, game.score
     
     def take_action(self, game, action):
         game.pacman.learnt_direction = game.pacman.get_new_direction(action)
             
     
             
-def train(model, max_games=10000):
+def train(model, max_games=1000, speedup=1, walk_length=0.5):
     plot_scores = []
     plot_mean_scores = []
-    total_score = 0
     plot_rewards = []
     plot_mean_rewards = []
-    total_reward = 0
     record = 0
     env  = Environment(model=model, lr=LR, epsilon=0.5)
     game = GameController()
     game.start_game()
     for i in range(max_games):
+        total_score = 0
+        total_reward = 0
+        
+        counter = 0
         while True:
-            # get old state
+            dt = game.clock.tick(60) * speedup / 1000.0 
             state_old = env.get_state(game)
+            # print(state_old.shape)
 
             # get move
             final_move = env.get_action(state_old)
-            # print(game.pacman.valid_directions()
 
-            # perform move and get new state
-            # if random.uniform(0,1) < walk_length:
-            #     env.take_action(game, final_move)
             env.take_action(game, final_move)
-            
-            game.update(speedup=10)
-            #get new state
+            game.update(dt)
+            reward, done, score = game.play_step()
+                
+                #get new state
             state_new = env.get_state(game)
-            reward, done, score = env.get_step(game)
-
-            # train short memory
+            total_reward += reward
+    # train short memory
+                
             env.train_short_memory(state_old, final_move, reward, state_new, done)
 
             # remember
             env.remember(state_old, final_move, reward, state_new, done)
+            counter = 0
 
             if done:
                 # train long memory, plot result
                 env.n_games += 1
                 env.train_long_memory()
                 plot_scores.append(score)
-                total_score += score
-                mean_score = total_score / env.n_games
+                mean_score = sum(plot_scores)/len(plot_scores)
                 plot_mean_scores.append(mean_score)
                 
                 plot_rewards.append(reward)
-                total_reward += reward
-                mean_reward = total_reward / env.n_games
+                mean_reward = np.mean(plot_rewards)
                 plot_mean_rewards.append(mean_reward)
                 
                 print("score: ", score)
@@ -166,7 +172,7 @@ def train(model, max_games=10000):
                 
                 if env.n_games % env.epsilon_steps == 0:
                     
-                    print('game', env.n_games, 'Mean Score', mean_score, 'reward', reward, 'Mean Reward', mean_reward)
+                    print('game', env.n_games, 'Mean Score', mean_score, 'episode reward', total_reward, 'Mean Reward', mean_reward)
                     env.epsilon = max(env.min_epsilon, env.epsilon - 0.01)
                     
                 if env.n_games % 100 == 0:
@@ -177,10 +183,25 @@ def train(model, max_games=10000):
                 game.game_over = False
                 break
             
+def play(modelfile):
+    model = FcNet(18, 5)
+    model.load_state_dict(torch.load(modelfile))
+    env = Environment(model=model)
+    game = GameController()
+    game.start_game()
+    while True:
+        state = env.get_state_conv(game)
+        move = env.get_action(state, pretrained=True)
+        env.take_action(game, move)
+        game.update()
+
+            
                  
 
 if __name__ == "__main__":
     
-    model = FcNet(23, 5)
-    train(model)
+    model = FcNet(18, 5)
+    model
+    train(model, speedup=5)
+    # play("models/model.pth")
         
