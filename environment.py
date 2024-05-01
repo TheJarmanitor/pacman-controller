@@ -16,31 +16,31 @@ from PIL import Image
 
 MAX_MEMORY = 100_000
 BATCH_SIZE = 1000
-LR = 0.0001
+LR = 5e-5
 
 
 class Environment:
-    def __init__(self, model=None, lr=0.001, gamma=0.9, epsilon=0.8):
+    def __init__(self, model=None, lr=0.001, gamma=0.9, epsilon=0.5):
         self.n_games = 0
         self.lr = lr
         self.gamma = gamma
         self.epsilon = epsilon
         self.min_epsilon = 0.1
-        self.epsilon_steps = 10
+        self.epsilon_steps = 1000
         self.model = model
         self.memory = deque(maxlen=MAX_MEMORY)
         self.trainer = Trainer(model, lr, gamma)
         
     def get_state(self, game):
-
+        player_direction = game.pacman.direction
         player_position = game.pacman.position
         blinky_position = game.ghosts.blinky.position
         blinky_mode = 1.0 if game.ghosts.blinky.mode.current == FREIGHT else 0.0
         pinky_position = game.ghosts.pinky.position
         pinky_mode = 1.0 if game.ghosts.pinky.mode.current == FREIGHT else 0.0
-        inky_position = game.ghosts.inky.position if game.pellets.num_eaten > 30 else Vector2(-1,-1)
+        inky_position = game.ghosts.inky.position 
         inky_mode = 1.0 if game.ghosts.inky.mode.current == FREIGHT else 0.0
-        clyde_position = game.ghosts.clyde.position if game.pellets.num_eaten > 70 else Vector2(-1,-1)
+        clyde_position = game.ghosts.clyde.position 
         clyde_mode = 1.0 if game.ghosts.clyde.mode.current == FREIGHT else 0.0
         
         #get closest pellet position
@@ -49,6 +49,7 @@ class Environment:
         
         
         return(
+            player_direction,
             player_position.x, player_position.y,
             pinky_position.x, pinky_position.y,
             inky_position.x, inky_position.y, 
@@ -118,7 +119,7 @@ class Environment:
             
     
             
-def train(model, max_games=1000, speedup=1, walk_length=0.5):
+def train(model, max_steps=1000000, speedup=1, walk_length=0.5):
     plot_scores = []
     plot_mean_scores = []
     plot_rewards = []
@@ -127,61 +128,59 @@ def train(model, max_games=1000, speedup=1, walk_length=0.5):
     env  = Environment(model=model, lr=LR, epsilon=0.5)
     game = GameController()
     game.start_game()
-    for i in range(max_games):
-        total_score = 0
-        total_reward = 0
-        
-        counter = 0
-        while True:
-            dt = game.clock.tick(60) * speedup / 1000.0 
-            state_old = env.get_state(game)
+    total_score = 0
+    total_reward = 0
+    for i in range(max_steps):
+        dt = game.clock.tick(60) * speedup / 1000.0 
+        state_old = env.get_state(game)
             # print(state_old.shape)
 
             # get move
+
+        if i  % 5 == 0:
             final_move = env.get_action(state_old)
-
             env.take_action(game, final_move)
-            game.update(dt)
-            reward, done, score = game.play_step()
-                
-                #get new state
-            state_new = env.get_state(game)
-            total_reward += reward
-    # train short memory
-                
-            env.train_short_memory(state_old, final_move, reward, state_new, done)
+            
+        game.update(dt)
+        reward, done, score = game.play_step()
+            
+            #get new state
+        state_new = env.get_state(game)
+        total_reward += reward
+# train short memory
+            
+        env.train_short_memory(state_old, final_move, reward, state_new, done)
 
-            # remember
-            env.remember(state_old, final_move, reward, state_new, done)
-            counter = 0
+        # remember
+        env.remember(state_old, final_move, reward, state_new, done)
+        counter = 0
 
-            if done:
-                # train long memory, plot result
-                env.n_games += 1
-                env.train_long_memory()
-                plot_scores.append(score)
-                mean_score = sum(plot_scores)/len(plot_scores)
-                plot_mean_scores.append(mean_score)
+        if i % env.epsilon_steps == 0:
+            print("iteration", i, "epsilon", env.epsilon)
+            env.epsilon = max(env.min_epsilon, env.epsilon - 0.005)
+            
+        if done:
+            # train long memory, plot result
+            env.n_games += 1
+            env.train_long_memory()
+            plot_scores.append(score)
+            mean_score = sum(plot_scores)/len(plot_scores)
+            plot_mean_scores.append(mean_score)
+            
+            plot_rewards.append(reward)
+            mean_reward = np.mean(plot_rewards)
+            plot_mean_rewards.append(mean_reward)
+            
+            print("game", env.n_games, "last score", score, "average score", mean_score)
+            
+            
                 
-                plot_rewards.append(reward)
-                mean_reward = np.mean(plot_rewards)
-                plot_mean_rewards.append(mean_reward)
-                
-                print("score: ", score)
-                
-                
-                if env.n_games % env.epsilon_steps == 0:
-                    
-                    print('game', env.n_games, 'Mean Score', mean_score, 'episode reward', total_reward, 'Mean Reward', mean_reward)
-                    env.epsilon = max(env.min_epsilon, env.epsilon - 0.01)
-                    
-                if env.n_games % 100 == 0:
-                    model.save(filename="model.pth", root_dir="./models")
-                
-                game.reward = 0
-                game.score = 0
-                game.game_over = False
-                break
+            if i % 100 == 0:
+                model.save(filename="model.pth", root_dir="./models")
+            
+            game.reward = 0
+            game.score = 0
+            game.game_over = False
             
 def play(modelfile):
     model = FcNet(18, 5)
@@ -190,17 +189,18 @@ def play(modelfile):
     game = GameController()
     game.start_game()
     while True:
-        state = env.get_state_conv(game)
+        dt = game.clock.tick(60) / 1000.0 
+        state = env.get_state(game)
         move = env.get_action(state, pretrained=True)
         env.take_action(game, move)
-        game.update()
+        game.update(dt)
 
             
                  
 
 if __name__ == "__main__":
     
-    model = FcNet(18, 5)
+    model = FcNet(19, 5)
     model
     train(model, speedup=5)
     # play("models/model.pth")

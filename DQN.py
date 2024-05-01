@@ -12,10 +12,10 @@ import numpy as np
 class FcNet(nn.Module):
     def __init__(self, state_space, action_space):
         super(FcNet, self).__init__()
-        self.fc1 = nn.Linear(state_space, 128)
-        self.fc2 = nn.Linear(128, 256)
-        self.fc3 = nn.Linear(256, 128)
-        self.fc4 = nn.Linear(128, action_space)
+        self.fc1 = nn.Linear(state_space, 512)
+        self.fc2 = nn.Linear(512, 512)
+        self.fc3 = nn.Linear(512, 512)
+        self.fc4 = nn.Linear(512, action_space)
         
     def forward(self, x):
         x = F.relu(self.fc1(x))
