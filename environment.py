@@ -18,7 +18,7 @@ from itertools import count
 
 MAX_MEMORY = 100_000
 BATCH_SIZE = 1000
-LR = 5e-5
+LR = 5e-4
 
 
 class Environment:
@@ -36,14 +36,17 @@ class Environment:
     def get_state(self, game):
         player_direction = game.pacman.direction
         player_position = game.pacman.position
-        blinky_position = game.ghosts.blinky.position
-        blinky_mode = 1.0 if game.ghosts.blinky.mode.current == FREIGHT else 0.0
-        pinky_position = game.ghosts.pinky.position
-        pinky_mode = 1.0 if game.ghosts.pinky.mode.current == FREIGHT else 0.0
-        inky_position = game.ghosts.inky.position 
-        inky_mode = 1.0 if game.ghosts.inky.mode.current == FREIGHT else 0.0
-        clyde_position = game.ghosts.clyde.position 
-        clyde_mode = 1.0 if game.ghosts.clyde.mode.current == FREIGHT else 0.0
+        closest_ghost = min(game.ghosts, key=lambda x: (player_position - x.position).magnitude())
+        ghost_position = closest_ghost.position
+        ghost_mode = 1.0 if closest_ghost.mode.current == FREIGHT else 0.0
+        # blinky_position = game.ghosts.blinky.position
+        # blinky_mode = 1.0 if game.ghosts.blinky.mode.current == FREIGHT else 0.0
+        # pinky_position = game.ghosts.pinky.position
+        # pinky_mode = 1.0 if game.ghosts.pinky.mode.current == FREIGHT else 0.0
+        # inky_position = game.ghosts.inky.position 
+        # inky_mode = 1.0 if game.ghosts.inky.mode.current == FREIGHT else 0.0
+        # clyde_position = game.ghosts.clyde.position 
+        # clyde_mode = 1.0 if game.ghosts.clyde.mode.current == FREIGHT else 0.0
         
         #get closest pellet position
         closest_pellet = min(game.pellets.pellet_list, key=lambda x: (player_position - x.position).magnitude())
@@ -53,13 +56,15 @@ class Environment:
         return(
             player_direction,
             player_position.x, player_position.y,
-            pinky_position.x, pinky_position.y,
-            inky_position.x, inky_position.y, 
-            blinky_position.x, blinky_position.y,
-            clyde_position.x, clyde_position.y,
+            # pinky_position.x, pinky_position.y,
+            # inky_position.x, inky_position.y, 
+            # blinky_position.x, blinky_position.y,
+            # clyde_position.x, clyde_position.y,
+            ghost_position.x, ghost_position.y,
             closest_pellet.position.x, closest_pellet.position.y,
             closest_powerpellet.position.x, closest_powerpellet.position.y,
-            pinky_mode, inky_mode, blinky_mode, clyde_mode,
+            # pinky_mode, inky_mode, blinky_mode, clyde_mode,
+            ghost_mode
             )
     def get_state_conv(self, game):
         
@@ -88,7 +93,7 @@ class Environment:
         else:
             mini_sample = self.memory
         states, actions, rewards, next_states, dones = zip(*mini_sample)
-        self.trainer.train_step(states, actions, rewards, next_states, dones)
+        self.trainer.train_step(states, actions, rewards, next_states, dones, update=True)
         #for state, action, reward, nexrt_state, done in mini_sample:
         #    self.trainer.train_step(state, action, reward, next_state, done)
 
@@ -108,7 +113,7 @@ class Environment:
             final_move[move] = 1
         else:
             state0 = torch.tensor(state, dtype=torch.float)
-            prediction = self.model(state0)
+            prediction = self.trainer.policy_net(state0)
             move = torch.argmax(prediction).item()
             final_move[move] = 1  
             
@@ -125,7 +130,7 @@ def train(model, max_steps=1000000, speedup=1, skip = 5):
     plot_rewards = []
     plot_mean_rewards = []
     record = 0
-    env  = Environment(model=model, lr=LR, epsilon=0.5)
+    env  = Environment(model=model, lr=LR, epsilon=0.8)
     game = GameController()
     game.start_game()
     total_score = 0
@@ -184,7 +189,7 @@ def train(model, max_steps=1000000, speedup=1, skip = 5):
             game.game_over = False
             
 def play(modelfile, skip=5):
-    model = FcNet(19, 4)
+    model = FcNet(10, 4)
     model.load_state_dict(torch.load(modelfile))
     env = Environment(model=model)
     game = GameController()
@@ -197,14 +202,20 @@ def play(modelfile, skip=5):
             # print(move)
             env.take_action(game, move)
         game.update(dt)
+        reward, done, score = game.play_step()
+        if done:
+            game.reward = 0
+            game.score = 0
+            game.game_over = False
+            
 
             
                  
 
 if __name__ == "__main__":
     
-    model = FcNet(19, 4)
+    model = FcNet(10, 4)
     model
-    train(model, speedup=5)
+    train(model, speedup=5, skip=5)
     # play("models/model.pth", skip=1)
         

@@ -7,15 +7,16 @@ import os
 
 ## other libraries
 import numpy as np
+from copy import deepcopy
 
 
 class FcNet(nn.Module):
     def __init__(self, state_space, action_space):
         super(FcNet, self).__init__()
-        self.fc1 = nn.Linear(state_space, 512)
-        self.fc2 = nn.Linear(512, 512)
-        self.fc3 = nn.Linear(512, 512)
-        self.fc4 = nn.Linear(512, action_space)
+        self.fc1 = nn.Linear(state_space, 128)
+        self.fc2 = nn.Linear(128, 128)
+        self.fc3 = nn.Linear(128, 128)
+        self.fc4 = nn.Linear(128, action_space)
         
     def forward(self, x):
         x = F.relu(self.fc1(x))
@@ -57,23 +58,23 @@ class ConvNet(nn.Module):
     
 class Trainer():
     def __init__(self, model, lr, gamma, optimizer=None, criterion=None):
-        self.model = model
+        self.policy_net = model
         self.lr = lr
         self.gamma = gamma
+        self.target_net = model
 
-        self.optimizer = optim.RMSprop(self.model.parameters(), 
+        self.optimizer = optim.RMSprop(self.policy_net.parameters(), 
                                   lr=lr, 
                                   alpha=0.95, 
                                   eps=0.01) if not optimizer else optimizer
 
         self.criterion = nn.SmoothL1Loss() if not criterion else criterion
         
-    def train_step(self, state, action, reward, next_state, done):
+    def train_step(self, state, action, reward, next_state, done, update=False):
         state = torch.tensor(state, dtype=torch.float)
         next_state = torch.tensor(next_state, dtype=torch.float)
         action = torch.tensor(action, dtype=torch.long)
         reward = torch.tensor(reward, dtype=torch.float)
-        policy_net = self.model
         
         if len(state.shape) == 1:
 
@@ -83,13 +84,18 @@ class Trainer():
             reward = torch.unsqueeze(reward, 0)
             done = (done, )
         
-        pred = self.model(state)
+        pred = self.policy_net(state)
         
-        target = policy_net(state)
+        if update:
+        # self.target_net.load_state_dict(self.policy_net.state_dict())
+        
+            self.target_net = deepcopy(self.policy_net)
+        
+        target = self.target_net(state)
         for idx in range(len(done)):
             Q_new = reward[idx]
             if not done[idx]:
-                Q_new = reward[idx] + self.gamma * torch.max(self.model(next_state[idx]))
+                Q_new = reward[idx] + self.gamma * torch.max(self.policy_net(next_state[idx]))
 
             target[idx][torch.argmax(action[idx]).item()] = Q_new
     
