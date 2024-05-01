@@ -130,14 +130,14 @@ def train(model, max_steps=1000000, speedup=1, walk_length=0.5):
     game.start_game()
     total_score = 0
     total_reward = 0
-    for i in range(max_steps):
+    for i in range(max_steps * speedup):
         dt = game.clock.tick(60) * speedup / 1000.0 
         state_old = env.get_state(game)
             # print(state_old.shape)
 
             # get move
 
-        if i  % 5 == 0:
+        if i  % 5 * speedup == 0:
             final_move = env.get_action(state_old)
             env.take_action(game, final_move)
             
@@ -155,8 +155,8 @@ def train(model, max_steps=1000000, speedup=1, walk_length=0.5):
         env.remember(state_old, final_move, reward, state_new, done)
         counter = 0
 
-        if i % env.epsilon_steps == 0:
-            print("iteration", i, "epsilon", env.epsilon)
+        if i % env.epsilon_steps * speedup == 0:
+            print("iteration", i // speedup, "epsilon", env.epsilon)
             env.epsilon = max(env.min_epsilon, env.epsilon - 0.005)
             
         if done:
