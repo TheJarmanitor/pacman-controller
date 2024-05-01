@@ -13,6 +13,8 @@ import cv2
 from torchvision import transforms
 from PIL import Image
 
+from itertools import count
+
 
 MAX_MEMORY = 100_000
 BATCH_SIZE = 1000
@@ -95,22 +97,20 @@ class Environment:
         
     def get_action(self, state, pretrained=False):
         
-        final_move = [0,0,0,0,0]
+        final_move = [0,0,0,0]
         
         if not pretrained:
-            if random.uniform(0,1) < self.epsilon:
-                move = np.random.randint(0,4)
-                final_move[move] = 1
-            else:
-                state0 = torch.tensor(state, dtype=torch.float)
-                prediction = self.model(state0)
-                move = torch.argmax(prediction).item()
-                final_move[move] = 1  
+            epsilon = self.epsilon
+        else:
+            epsilon = self.min_epsilon
+        if random.uniform(0,1) < epsilon:
+            move = np.random.randint(0,4)
+            final_move[move] = 1
         else:
             state0 = torch.tensor(state, dtype=torch.float)
             prediction = self.model(state0)
             move = torch.argmax(prediction).item()
-            final_move[move] = 1
+            final_move[move] = 1  
             
         return final_move
     
@@ -119,7 +119,7 @@ class Environment:
             
     
             
-def train(model, max_steps=1000000, speedup=1, walk_length=0.5):
+def train(model, max_steps=1000000, speedup=1, skip = 5):
     plot_scores = []
     plot_mean_scores = []
     plot_rewards = []
@@ -134,26 +134,26 @@ def train(model, max_steps=1000000, speedup=1, walk_length=0.5):
         dt = game.clock.tick(60) * speedup / 1000.0 
         state_old = env.get_state(game)
             # print(state_old.shape)
+        final_move = env.get_action(state_old)
 
             # get move
 
-        if i  % 5 * speedup == 0:
-            final_move = env.get_action(state_old)
+        if i  % skip // speedup == 0:
+            # print(final_move)
             env.take_action(game, final_move)
             
         game.update(dt)
         reward, done, score = game.play_step()
-            
-            #get new state
+        # print(reward)
+        #get new state
         state_new = env.get_state(game)
         total_reward += reward
 # train short memory
-            
+        
         env.train_short_memory(state_old, final_move, reward, state_new, done)
 
-        # remember
+    # remember
         env.remember(state_old, final_move, reward, state_new, done)
-        counter = 0
 
         if i % env.epsilon_steps * speedup == 0:
             print("iteration", i // speedup, "epsilon", env.epsilon)
@@ -162,7 +162,8 @@ def train(model, max_steps=1000000, speedup=1, walk_length=0.5):
         if done:
             # train long memory, plot result
             env.n_games += 1
-            env.train_long_memory()
+            if env.n_games % 100 == 0:
+                env.train_long_memory()
             plot_scores.append(score)
             mean_score = sum(plot_scores)/len(plot_scores)
             plot_mean_scores.append(mean_score)
@@ -182,17 +183,19 @@ def train(model, max_steps=1000000, speedup=1, walk_length=0.5):
             game.score = 0
             game.game_over = False
             
-def play(modelfile):
-    model = FcNet(18, 5)
+def play(modelfile, skip=5):
+    model = FcNet(19, 4)
     model.load_state_dict(torch.load(modelfile))
     env = Environment(model=model)
     game = GameController()
     game.start_game()
-    while True:
+    for i in count(0):
         dt = game.clock.tick(60) / 1000.0 
-        state = env.get_state(game)
-        move = env.get_action(state, pretrained=True)
-        env.take_action(game, move)
+        if i % skip == 0:
+            state = env.get_state(game)
+            move = env.get_action(state, pretrained=True)
+            # print(move)
+            env.take_action(game, move)
         game.update(dt)
 
             
@@ -200,8 +203,8 @@ def play(modelfile):
 
 if __name__ == "__main__":
     
-    model = FcNet(19, 5)
+    model = FcNet(19, 4)
     model
     train(model, speedup=5)
-    # play("models/model.pth")
+    # play("models/model.pth", skip=1)
         

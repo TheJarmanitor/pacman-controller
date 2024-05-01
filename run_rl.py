@@ -12,6 +12,7 @@ from sprites import LifeSprites
 from sprites import MazeSprites
 from mazes import MazeController
 from mazedata import MazeData######
+import numpy as np
 
 class GameController(object):
     def __init__(self):
@@ -156,7 +157,7 @@ class GameController(object):
         pellet = self.pacman.eat_pellets(self.pellets.pellet_list)
         if pellet:
             self.pellets.num_eaten += 1
-            self.reward = 1
+            self.reward = 1 + np.log10(self.pellets.num_eaten)
             self.update_score(pellet.points)
             if self.pellets.num_eaten == 30:
                 self.ghosts.inky.start_node.allow_access(RIGHT, self.ghosts.inky)
