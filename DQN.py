@@ -4,10 +4,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import os
+from copy import deepcopy
 
 ## other libraries
 import numpy as np
-
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class FcNet(nn.Module):
     def __init__(self, state_space, action_space):
@@ -33,18 +34,18 @@ class FcNet(nn.Module):
 class ConvNet(nn.Module):
     def __init__(self, action_space):
         super(ConvNet, self).__init__()
-        self.conv1 = nn.Conv2d(3, 32, 5, 1)
+        self.conv1 = nn.Conv2d(1, 32, 5, 1)
         self.conv2 = nn.Conv2d(32, 64, 5, 1)
         self.conv3 = nn.Conv2d(64, 128, 5, 1)
         self.pool = nn.MaxPool2d(2, 2)
-        self.fc1 = nn.Linear(128*4*4, 128)
+        self.fc1 = nn.Linear(128*24*24, 128)
         self.fc2 = nn.Linear(128, action_space)
         
     def forward(self, x):
         x = self.pool(F.relu(self.conv1(x)))
         x = self.pool(F.relu(self.conv2(x)))
         x = self.pool(F.relu(self.conv3(x)))
-        x = x.view(-1, 128*4*4)
+        x = x.view(-1, 128*24*24)
         x = F.relu(self.fc1(x))
         x = self.fc2(x)
         return x
@@ -57,7 +58,7 @@ class ConvNet(nn.Module):
     
 class Trainer():
     def __init__(self, model, lr, gamma, optimizer=None, criterion=None):
-        self.model = model
+        self.model = model.to(device)
         self.lr = lr
         self.gamma = gamma
 
@@ -69,13 +70,13 @@ class Trainer():
         self.criterion = nn.SmoothL1Loss() if not criterion else criterion
         
     def train_step(self, state, action, reward, next_state, done):
-        state = torch.tensor(state, dtype=torch.float)
-        next_state = torch.tensor(next_state, dtype=torch.float)
+        # state = torch.tensor(state, dtype=torch.float).to(device)
+        # next_state = torch.tensor(next_state, dtype=torch.float).to(device)
         action = torch.tensor(action, dtype=torch.long)
         reward = torch.tensor(reward, dtype=torch.float)
-        policy_net = self.model
+        policy_net = deepcopy(self.model).to(device)
         
-        if len(state.shape) == 1:
+        if len(state.shape) == 3:
 
             state = torch.unsqueeze(state, 0)
             next_state = torch.unsqueeze(next_state, 0)

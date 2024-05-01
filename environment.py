@@ -17,9 +17,10 @@ from itertools import count
 
 
 MAX_MEMORY = 100_000
-BATCH_SIZE = 1000
+BATCH_SIZE = 100
 LR = 5e-5
 
+device  = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class Environment:
     def __init__(self, model=None, lr=0.001, gamma=0.9, epsilon=0.5):
@@ -29,7 +30,7 @@ class Environment:
         self.epsilon = epsilon
         self.min_epsilon = 0.1
         self.epsilon_steps = 1000
-        self.model = model
+        self.model = model.to(device)
         self.memory = deque(maxlen=MAX_MEMORY)
         self.trainer = Trainer(model, lr, gamma)
         
@@ -65,17 +66,17 @@ class Environment:
         
         capture = pygame.surfarray.array3d(game.screen)
         capture = capture.transpose([1,0,2])
-        capture_bgr = cv2.cvtColor(capture, cv2.COLOR_RGB2BGR)
-        
+        capture_bgr = cv2.cvtColor(capture, cv2.COLOR_RGB2GRAY)
         image_state = Image.fromarray(capture_bgr)
         
         transform = transforms.Compose([
-                    transforms.Resize((64, 64)),
+                    transforms.Resize((224, 224)),
                     transforms.ToTensor(),
                 ])
         
-        transformed_capture = transform(image_state)
         
+        transformed_capture = transform(image_state)
+        # print(transformed_capture)
         return transformed_capture
         
         
@@ -107,11 +108,10 @@ class Environment:
             move = np.random.randint(0,4)
             final_move[move] = 1
         else:
-            state0 = torch.tensor(state, dtype=torch.float)
-            prediction = self.model(state0)
-            move = torch.argmax(prediction).item()
-            final_move[move] = 1  
-            
+            with torch.no_grad():
+                prediction = self.model(state)
+                move = torch.argmax(prediction).item()
+                final_move[move] = 1
         return final_move
     
     def take_action(self, game, action):
@@ -132,7 +132,7 @@ def train(model, max_steps=1000000, speedup=1, skip = 5):
     total_reward = 0
     for i in range(max_steps * speedup):
         dt = game.clock.tick(60) * speedup / 1000.0 
-        state_old = env.get_state(game)
+        state_old = env.get_state_conv(game).to(device)
             # print(state_old.shape)
         final_move = env.get_action(state_old)
 
@@ -146,7 +146,7 @@ def train(model, max_steps=1000000, speedup=1, skip = 5):
         reward, done, score = game.play_step()
         # print(reward)
         #get new state
-        state_new = env.get_state(game)
+        state_new = env.get_state_conv(game).to(device)
         total_reward += reward
 # train short memory
         
@@ -162,7 +162,7 @@ def train(model, max_steps=1000000, speedup=1, skip = 5):
         if done:
             # train long memory, plot result
             env.n_games += 1
-            if env.n_games % 100 == 0:
+            if env.n_games + 1 % 100 == 0:
                 env.train_long_memory()
             plot_scores.append(score)
             mean_score = sum(plot_scores)/len(plot_scores)
@@ -184,7 +184,7 @@ def train(model, max_steps=1000000, speedup=1, skip = 5):
             game.game_over = False
             
 def play(modelfile, skip=5):
-    model = FcNet(19, 4)
+    model = ConvNet(4)
     model.load_state_dict(torch.load(modelfile))
     env = Environment(model=model)
     game = GameController()
@@ -192,7 +192,7 @@ def play(modelfile, skip=5):
     for i in count(0):
         dt = game.clock.tick(60) / 1000.0 
         if i % skip == 0:
-            state = env.get_state(game)
+            state = env.get_state_conv(game)
             move = env.get_action(state, pretrained=True)
             # print(move)
             env.take_action(game, move)
@@ -203,8 +203,8 @@ def play(modelfile, skip=5):
 
 if __name__ == "__main__":
     
-    model = FcNet(19, 4)
-    model
-    train(model, speedup=5)
+    # model = FcNet(19, 4)
+    model = ConvNet(4)
+    train(model, speedup=5, skip=1)
     # play("models/model.pth", skip=1)
         
