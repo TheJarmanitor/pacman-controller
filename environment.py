@@ -9,7 +9,7 @@ import torch
 from vector import Vector2
 import pygame
 
-import cv2
+# import cv2
 from torchvision import transforms
 from PIL import Image
 
@@ -18,7 +18,7 @@ from itertools import count
 
 MAX_MEMORY = 100_000
 BATCH_SIZE = 1000
-LR = 5e-4
+LR = 5e-5
 
 
 class Environment:
@@ -36,17 +36,17 @@ class Environment:
     def get_state(self, game):
         player_direction = game.pacman.direction
         player_position = game.pacman.position
-        closest_ghost = min(game.ghosts, key=lambda x: (player_position - x.position).magnitude())
-        ghost_position = closest_ghost.position
-        ghost_mode = 1.0 if closest_ghost.mode.current == FREIGHT else 0.0
-        # blinky_position = game.ghosts.blinky.position
-        # blinky_mode = 1.0 if game.ghosts.blinky.mode.current == FREIGHT else 0.0
-        # pinky_position = game.ghosts.pinky.position
-        # pinky_mode = 1.0 if game.ghosts.pinky.mode.current == FREIGHT else 0.0
-        # inky_position = game.ghosts.inky.position 
-        # inky_mode = 1.0 if game.ghosts.inky.mode.current == FREIGHT else 0.0
-        # clyde_position = game.ghosts.clyde.position 
-        # clyde_mode = 1.0 if game.ghosts.clyde.mode.current == FREIGHT else 0.0
+        # closest_ghost = min(game.ghosts, key=lambda x: (player_position - x.position).magnitude())
+        # ghost_position = closest_ghost.position
+        # ghost_mode = 1.0 if closest_ghost.mode.current == FREIGHT else 0.0
+        blinky_position = game.ghosts.blinky.position
+        blinky_mode = 1.0 if game.ghosts.blinky.mode.current == FREIGHT else 0.0
+        pinky_position = game.ghosts.pinky.position
+        pinky_mode = 1.0 if game.ghosts.pinky.mode.current == FREIGHT else 0.0
+        inky_position = game.ghosts.inky.position 
+        inky_mode = 1.0 if game.ghosts.inky.mode.current == FREIGHT else 0.0
+        clyde_position = game.ghosts.clyde.position 
+        clyde_mode = 1.0 if game.ghosts.clyde.mode.current == FREIGHT else 0.0
         
         #get closest pellet position
         closest_pellet = min(game.pellets.pellet_list, key=lambda x: (player_position - x.position).magnitude())
@@ -56,32 +56,32 @@ class Environment:
         return(
             player_direction,
             player_position.x, player_position.y,
-            # pinky_position.x, pinky_position.y,
-            # inky_position.x, inky_position.y, 
-            # blinky_position.x, blinky_position.y,
-            # clyde_position.x, clyde_position.y,
-            ghost_position.x, ghost_position.y,
+            pinky_position.x, pinky_position.y,
+            inky_position.x, inky_position.y, 
+            blinky_position.x, blinky_position.y,
+            clyde_position.x, clyde_position.y,
+            # ghost_position.x, ghost_position.y,
             closest_pellet.position.x, closest_pellet.position.y,
             closest_powerpellet.position.x, closest_powerpellet.position.y,
-            # pinky_mode, inky_mode, blinky_mode, clyde_mode,
-            ghost_mode
+            pinky_mode, inky_mode, blinky_mode, clyde_mode,
+            # ghost_mode
             )
-    def get_state_conv(self, game):
+    # def get_state_conv(self, game):
         
-        capture = pygame.surfarray.array3d(game.screen)
-        capture = capture.transpose([1,0,2])
-        capture_bgr = cv2.cvtColor(capture, cv2.COLOR_RGB2BGR)
+    #     capture = pygame.surfarray.array3d(game.screen)
+    #     capture = capture.transpose([1,0,2])
+    #     capture_bgr = cv2.cvtColor(capture, cv2.COLOR_RGB2BGR)
         
-        image_state = Image.fromarray(capture_bgr)
+    #     image_state = Image.fromarray(capture_bgr)
         
-        transform = transforms.Compose([
-                    transforms.Resize((64, 64)),
-                    transforms.ToTensor(),
-                ])
+    #     transform = transforms.Compose([
+    #                 transforms.Resize((64, 64)),
+    #                 transforms.ToTensor(),
+    #             ])
         
-        transformed_capture = transform(image_state)
+    #     transformed_capture = transform(image_state)
         
-        return transformed_capture
+    #     return transformed_capture
         
         
     def remember(self, state, action, reward, next_state, done):
@@ -124,13 +124,13 @@ class Environment:
             
     
             
-def train(model, max_steps=1000000, speedup=1, skip = 5):
+def train(model, max_steps=10000, speedup=1, skip = 5):
     plot_scores = []
     plot_mean_scores = []
     plot_rewards = []
     plot_mean_rewards = []
     record = 0
-    env  = Environment(model=model, lr=LR, epsilon=0.8)
+    env  = Environment(model=model, lr=LR, epsilon=0.5)
     game = GameController()
     game.start_game()
     total_score = 0
@@ -160,9 +160,9 @@ def train(model, max_steps=1000000, speedup=1, skip = 5):
     # remember
         env.remember(state_old, final_move, reward, state_new, done)
 
-        if i % env.epsilon_steps * speedup == 0:
+        if i % env.epsilon_steps  == 0:
             print("iteration", i // speedup, "epsilon", env.epsilon)
-            env.epsilon = max(env.min_epsilon, env.epsilon - 0.005)
+            env.epsilon = max(env.min_epsilon, env.epsilon - 0.01)
             
         if done:
             # train long memory, plot result
@@ -189,7 +189,7 @@ def train(model, max_steps=1000000, speedup=1, skip = 5):
             game.game_over = False
             
 def play(modelfile, skip=5):
-    model = FcNet(10, 4)
+    model = FcNet(19, 4)
     model.load_state_dict(torch.load(modelfile))
     env = Environment(model=model)
     game = GameController()
@@ -204,6 +204,8 @@ def play(modelfile, skip=5):
         game.update(dt)
         reward, done, score = game.play_step()
         if done:
+            env.n_games += 1
+            print("game", env.n_games, "last score", score)
             game.reward = 0
             game.score = 0
             game.game_over = False
@@ -214,8 +216,8 @@ def play(modelfile, skip=5):
 
 if __name__ == "__main__":
     
-    model = FcNet(10, 4)
+    model = FcNet(19, 4)
     model
-    train(model, speedup=5, skip=5)
-    # play("models/model.pth", skip=1)
+    # train(model, speedup=5, skip=20)
+    play("models/model.pth", skip=5)
         
