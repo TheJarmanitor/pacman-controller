@@ -10,8 +10,8 @@ from vector import Vector2
 import pygame
 
 # import cv2
-from torchvision import transforms
-from PIL import Image
+# from torchvision import transforms
+# from PIL import Image
 
 from itertools import count
 

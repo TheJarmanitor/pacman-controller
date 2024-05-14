@@ -53,9 +53,11 @@ class GameController(object):
         self.nodes = NodeGroup(self.mazedata.obj.name+".txt")
         self.mazedata.obj.set_portal_pairs(self.nodes)
         self.mazedata.obj.connect_home_nodes(self.nodes)
-        self.pacman = Pacman(self.nodes.get_node_from_tiles(*self.mazedata.obj.pacman_start))
+        self.pacman = Pacman(self.nodes.get_node_from_tiles(*self.mazedata.obj.pacman_start), self.nodes)
         self.pellets = PelletGroup(self.mazedata.obj.name+".txt")
         self.ghosts = GhostGroup(self.nodes.get_start_temp_node(), self.pacman)
+        
+        # first_pellet = self.pellets.powerpellets[0]
 
         self.ghosts.pinky.set_start_node(self.nodes.get_node_from_tiles(*self.mazedata.obj.add_offset(2, 3)))
         self.ghosts.inky.set_start_node(self.nodes.get_node_from_tiles(*self.mazedata.obj.add_offset(0, 3)))
@@ -69,6 +71,10 @@ class GameController(object):
         self.ghosts.clyde.start_node.deny_access(LEFT, self.ghosts.clyde)
         self.mazedata.obj.deny_ghosts_access(self.ghosts, self.nodes)
 
+        print(self.nodes.get_list_of_nodes_vector())
+        print(self.nodes.nodes_LUT.keys())
+        self.pacman.goal = self.nodes.get_node_from_pixels(16,64)
+        print(self.pacman.goal)
     def start_game_old(self):      
         self.mazedata.load_maze(self.level)#######
         self.mazesprites = MazeSprites("maze1.txt", "maze1_rotation.txt")
@@ -80,6 +86,8 @@ class GameController(object):
         self.nodes.connect_home_nodes(homekey, (15,14), RIGHT)
         self.pacman = Pacman(self.nodes.get_node_from_tiles(15, 26))
         self.pellets = PelletGroup("maze1.txt")
+        
+        
         self.ghosts = GhostGroup(self.nodes.get_start_temp_node(), self.pacman)
         self.ghosts.blinky.set_start_node(self.nodes.get_node_from_tiles(2+11.5, 0+14))
         self.ghosts.pinky.set_start_node(self.nodes.get_node_from_tiles(2+11.5, 3+14))

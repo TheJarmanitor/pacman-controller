@@ -1,11 +1,13 @@
 import pygame
 from pygame.locals import *
+from algorithms import *
 from constants import *
 from entity import Entity
 from sprites import PacmanSprites
 
+
 class Pacman(Entity):
-    def __init__(self, node):
+    def __init__(self, node, nodes):
         Entity.__init__(self, node )
         self.name = PACMAN    
         self.color = YELLOW
@@ -13,7 +15,9 @@ class Pacman(Entity):
         self.set_between_nodes(LEFT)
         self.alive = True
         self.sprites = PacmanSprites(self)
-        self.learnt_direction = LEFT
+        self.nodes = nodes
+        # self.learnt_direction = LEFT
+        
 
     def reset(self):
         Entity.reset(self)
@@ -31,7 +35,8 @@ class Pacman(Entity):
         self.sprites.update(dt)
         self.position += self.directions[self.direction]*self.speed*dt
         # direction = self.get_valid_key()
-        direction = self.learnt_direction
+        direction = self.goal_direction_dij(self.directions, self.goal)
+        # direction = self.learnt_direction
         if self.overshot_target():
             self.node = self.target
             if self.node.neighbors[PORTAL] is not None:
@@ -60,34 +65,7 @@ class Pacman(Entity):
         if key_pressed[K_RIGHT]:
             return RIGHT
         return STOP 
-    
-    # def get_new_direction(self,action):
-    #     # turn left [1,0,0,0]
-    #     if action[0] == 1:
-    #         if self.direction == UP:
-    #             return LEFT
-    #         if self.direction == LEFT:
-    #             return DOWN
-    #         if self.direction == DOWN:
-    #             return RIGHT
-    #         if self.direction == RIGHT:
-    #             return UP 
-    #     ##turn right [0,1,0,0]
-    #     elif action[1] == 1:
-    #         if self.direction == UP:
-    #             return RIGHT
-    #         if self.direction == RIGHT:
-    #             return DOWN
-    #         if self.direction == DOWN:
-    #             return LEFT
-    #         if self.direction == LEFT:
-    #             return UP
-    #     ## Go back [0,0,1,0]
-    #     elif action[2] == 1:
-    #         return self.reverse_direction()
-    #     ## keep direction [0,0,0,1]
-    #     elif action[3] == 1:
-    #         return self.direction
+
     
     def get_new_direction(self, action):
         if action[0] == 1:
@@ -116,3 +94,44 @@ class Pacman(Entity):
         if d_squared <= r_squared:
             return True
         return False
+
+    def get_dijkstra_path(self, directions, target_node):
+        last_target_node = target_node
+        last_target_node = self.nodes.get_vector_from_LUT_node(last_target_node)
+        
+        own_target = self.target
+        own_target = self.nodes.get_vector_from_LUT_node(own_target)
+        
+        previous_nodes, shortest_path = a_star(self.nodes, last_target_node)
+        print_result(previous_nodes, shortest_path, own_target, last_target_node)
+        path = []
+        node = last_target_node
+        while node != own_target:
+            path.append(node)
+            node = previous_nodes[node]
+        path.append(own_target)
+        path.reverse()
+        
+        return path
+    
+    def goal_direction_dij(self, directions, target_node):
+        path = self.get_dijkstra_path(directions, target_node)
+        own_target = self.target
+        own_target = self.nodes.get_vector_from_LUT_node(own_target)
+        path.append(own_target)
+        
+        next_node = path[1]
+        if own_target[0] > next_node[0] and LEFT in directions:
+            return LEFT
+        if own_target[0] < next_node[0] and RIGHT in directions:
+            return RIGHT
+        if own_target[1] > next_node[1] and UP in directions:
+            return UP
+        if own_target[1] < next_node[1] and DOWN in directions:
+            return DOWN
+        else:
+            return STOP
+        
+        
+        
+        
