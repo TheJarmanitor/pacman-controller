@@ -42,3 +42,8 @@ LEVELTXT = 1
 READYTXT = 2
 PAUSETXT = 3
 GAMEOVERTXT = 4
+
+
+KILL_GHOSTS = "Kill Ghosts"
+EAT_PELLETS = "Eat pellets"
+ESCAPE = "Escape"
