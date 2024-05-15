@@ -18,7 +18,7 @@ def dijkstra(nodes, start_node):
             elif shortest_path[node] < shortest_path[current_min_node]:
                 current_min_node = node
         
-        neighbors = nodes.neighbors[current_min_node]
+        neighbors = nodes.get_neighbors(current_min_node)
         for neighbor in neighbors:
             tentative_value = shortest_path[current_min_node] + 1
             if tentative_value < shortest_path[neighbor]:

@@ -102,7 +102,8 @@ class Pacman(Entity):
         own_target = self.target
         own_target = self.nodes.get_vector_from_LUT_node(own_target)
         
-        previous_nodes, shortest_path = a_star(self.nodes, last_target_node)
+        previous_nodes, shortest_path = dijkstra(self.nodes, last_target_node)
+        print(previous_nodes)
         print_result(previous_nodes, shortest_path, own_target, last_target_node)
         path = []
         node = last_target_node
