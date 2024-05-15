@@ -2,6 +2,7 @@ import sys
 
 def dijkstra(nodes, start_node):
     unvisited_nodes = list(nodes.costs)
+    print(unvisited_nodes)
     shortest_path = {}
     previous_nodes = {}
     
@@ -40,7 +41,7 @@ def print_result(previous_nodes, shortest_path, start_node, target_node):
     
     path.append(start_node)
     
-    print('Shortest path is: ', shortest_path[target_node])
+    # print('Shortest path is: ', shortest_path[target_node])
     print(path)
     
     
@@ -71,9 +72,9 @@ def a_star(nodes, start_node):
         neighbors = nodes.get_neighbors(current_min_node)
         for neighbor in neighbors:
             tentative_value = shortest_path[current_min_node] + heuristic(current_min_node, neighbor)
-            print(tentative_value)
-            print(neighbor)
-            print(shortest_path.keys())
+            # print(tentative_value)
+            # print(neighbor)
+            # print(shortest_path.keys())
             if tentative_value < shortest_path[neighbor]:
                 shortest_path[neighbor] = tentative_value
                 previous_nodes[neighbor] = current_min_node

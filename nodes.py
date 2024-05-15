@@ -2,6 +2,7 @@ import pygame
 from vector import Vector2
 from constants import *
 import numpy as np
+import sys
 
 class Node(object):
     def __init__(self, x, y):
@@ -122,6 +123,16 @@ class NodeGroup(object):
         if (xpixel, ypixel) in self.nodes_LUT.keys():
             return self.nodes_LUT[(xpixel, ypixel)]
         return None
+    
+    def get_closest_node(self, position):
+        closest_node = None
+        min_distance = sys.maxsize
+        for node in self.nodes_LUT.values():
+            distance = (node.position - position).magnitude_squared()
+            if distance < min_distance:
+                min_distance = distance
+                closest_node = node
+        return closest_node
 
     def get_node_from_tiles(self, col, row):
         x, y = self.construct_key(col, row)
@@ -204,5 +215,5 @@ class NodeGroup(object):
                 else:
                     temp_list.append(None)
             costs_dict[node] = temp_list
-        print("node costs: ",costs_dict)
+        # print("node costs: ",costs_dict)
         return costs_dict

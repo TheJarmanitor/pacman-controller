@@ -57,11 +57,11 @@ class GameController(object):
         self.pellets = PelletGroup(self.mazedata.obj.name+".txt")
         self.ghosts = GhostGroup(self.nodes.get_start_temp_node(), self.pacman)
         
-        # first_pellet = self.pellets.powerpellets[0]
-        self.pacman.goal = self.nodes.get_node_from_pixels(16,64)
+
+        first_powerpellet = self.pellets.powerpellets[0].position
+        self.pacman.goal = self.nodes.get_closest_node(first_powerpellet)
+        # print(self.pacman.goal.position)
         self.nodes.costs = self.nodes.get_nodes()
-        # print("nodes vector: ", self.nodes.get_list_of_nodes_vector())
-        # print("nodes LUT:", self.nodes.nodes_LUT.keys())
 
         self.ghosts.pinky.set_start_node(self.nodes.get_node_from_tiles(*self.mazedata.obj.add_offset(2, 3)))
         self.ghosts.inky.set_start_node(self.nodes.get_node_from_tiles(*self.mazedata.obj.add_offset(0, 3)))
