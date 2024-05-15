@@ -56,11 +56,7 @@ class GameController(object):
         self.pacman = Pacman(self.nodes.get_node_from_tiles(*self.mazedata.obj.pacman_start), self.nodes)
         self.pellets = PelletGroup(self.mazedata.obj.name+".txt")
         self.ghosts = GhostGroup(self.nodes.get_start_temp_node(), self.pacman)
-        
 
-        first_powerpellet = self.pellets.powerpellets[0].position
-        self.pacman.goal = self.nodes.get_closest_node(first_powerpellet)
-        # print(self.pacman.goal.position)
         self.nodes.costs = self.nodes.get_nodes()
 
         self.ghosts.pinky.set_start_node(self.nodes.get_node_from_tiles(*self.mazedata.obj.add_offset(2, 3)))
@@ -74,7 +70,9 @@ class GameController(object):
         self.ghosts.inky.start_node.deny_access(RIGHT, self.ghosts.inky)
         self.ghosts.clyde.start_node.deny_access(LEFT, self.ghosts.clyde)
         self.mazedata.obj.deny_ghosts_access(self.ghosts, self.nodes)
-
+        
+        
+    
     def start_game_old(self):      
         self.mazedata.load_maze(self.level)#######
         self.mazesprites = MazeSprites("maze1.txt", "maze1_rotation.txt")
@@ -112,6 +110,7 @@ class GameController(object):
         dt = self.clock.tick(30) / 1000.0
         self.textgroup.update(dt)
         self.pellets.update(dt)
+        
         if not self.pause.paused:
             self.ghosts.update(dt)      
             if self.fruit is not None:
