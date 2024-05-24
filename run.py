@@ -53,11 +53,14 @@ class GameController(object):
         self.nodes = NodeGroup(self.mazedata.obj.name+".txt")
         self.mazedata.obj.set_portal_pairs(self.nodes)
         self.mazedata.obj.connect_home_nodes(self.nodes)
-        self.pacman = Pacman(self.nodes.get_node_from_tiles(*self.mazedata.obj.pacman_start), self.nodes)
         self.pellets = PelletGroup(self.mazedata.obj.name+".txt")
+        self.pacman = Pacman(self.nodes.get_node_from_tiles(*self.mazedata.obj.pacman_start), self.nodes)
         self.ghosts = GhostGroup(self.nodes.get_start_temp_node(), self.pacman)
 
         self.nodes.costs = self.nodes.get_nodes()
+        
+        self.pacman.get_ghostgroup_object(self.ghosts)
+        self.pacman.get_pelletgroup_object(self.pellets)
 
         self.ghosts.pinky.set_start_node(self.nodes.get_node_from_tiles(*self.mazedata.obj.add_offset(2, 3)))
         self.ghosts.inky.set_start_node(self.nodes.get_node_from_tiles(*self.mazedata.obj.add_offset(0, 3)))
@@ -167,6 +170,7 @@ class GameController(object):
             self.pellets.pellet_list.remove(pellet)
             if pellet.name == POWERPELLET:
                 self.ghosts.start_freight()
+                self.pellets.powerpellets.remove(pellet)
             if self.pellets.is_empty():
                 self.flash_bg = True
                 self.hide_entities()

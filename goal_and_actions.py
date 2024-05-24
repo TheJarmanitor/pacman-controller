@@ -1,4 +1,4 @@
-from constants import EAT_PELLETS, KILL_GHOSTS, ESCAPE
+from constants import EAT_PELLETS, HUNT_GHOSTS
 
 class Goal(object):
     def __init__(self, name, value):
@@ -25,32 +25,42 @@ class Action(object):
 Goals:
     Eat pellets
     Hunt ghosts
-    Escape
 Actions:
     Eat pellets:
-        Go to nearest corner
+        Go to target corner
         wander around quadrant
+        Randomly select new quadrant
     Hunt ghost:
         Go to nearest PowerPellet
         Go to nearest ghost
-    Escape:
-        select different quadrant
-        got to quadran's corner
 '''
 
-class GoToClosestCorner(Action):
+class GoToTargetCorner(Action):
     def __init__(self, name):
+        Action.__init__(self, name)
+        self.value = 10
+        
+    def get_goal_change(self, goal: Goal) -> int:
+        if goal.name == EAT_PELLETS:
+            goal.value += self.value
+        else:
+            goal.value -= 100
+            
+class WanderAroundQuadrant(Action):
+    def __init__(self, name):
+        Action.__init__(self, name)
         self.value = 5
         
     def get_goal_change(self, goal: Goal) -> int:
         if goal.name == EAT_PELLETS:
-            goal.value -= self.value
+            goal.value += self.value
         else:
-            goal.value += 100
+            goal.value -= 100
             
-class WanderAroundQuadrant(Action):
+class SelectNewQuadrant(Action):
     def __init__(self, name):
-        self.value = 3
+        Action.__init__(self, name)
+        self.value = 1
         
     def get_goal_change(self, goal: Goal) -> int:
         if goal.name == EAT_PELLETS:
@@ -60,46 +70,39 @@ class WanderAroundQuadrant(Action):
             
 class GoToNearestPowerpellet(Action):
     def __init__(self, name):
+        Action.__init__(self, name)
         self.value = 10
         
     def get_goal_change(self, goal: Goal) -> int:
-        if goal.name == KILL_GHOSTS:
-            goal.value -= self.value
+        if goal.name == HUNT_GHOSTS:
+            goal.value += self.value
         else:
-            goal.value += 100
+            goal.value -= 100
 
 class GoToNearestGhost(Action):
     def __init__(self, name):
-        self.value = 5
-        
-    def get_goal_change(self, goal: Goal) -> int:
-        if goal.name == KILL_GHOSTS:
-            goal.value += self.value
-        else:
-            goal.value -= 100
-            
-class SelectNewQuadrant(Action):
-    def __init__(self, name):
-        self.value = 5
-        
-    def get_goal_change(self, goal: Goal) -> int:
-        if goal.name == ESCAPE:
-            goal.value += self.value
-        else:
-            goal.value -= 100
-            
-class GoToQuadrantCorner(Action):
-    def __init__(self, name):
+        Action.__init__(self, name)
         self.value = 3
         
     def get_goal_change(self, goal: Goal) -> int:
-        if goal.name == ESCAPE:
-            goal.value -= self.value
+        if goal.name == HUNT_GHOSTS:
+            goal.value += self.value
         else:
-            goal.value += 100
+            goal.value -= 100
+class EscapeToNextQuadrant(Action):
+    def __init__(self, name):
+        Action.__init__(self, name)
+        self.value = 1
+        
+    def get_goal_change(self, goal: Goal) -> int:
+        if goal.name == HUNT_GHOSTS:
+            goal.value += self.value
+        else:
+            goal.value -= 100
             
 class DummyAction(Action):
     def __init__(self, name):
+        Action.__init__(self, name)
         self.value = 1
         
     def get_goal_change(self, goal: Goal) -> int:

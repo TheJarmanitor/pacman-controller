@@ -2,7 +2,7 @@ import pygame
 from pygame.locals import *
 from vector import Vector2
 from constants import *
-from random import randint
+from random import randint, choice
 
 class Entity(object):
     def __init__(self, node):
@@ -48,6 +48,24 @@ class Entity(object):
                 if self.node.neighbors[direction] is not None:
                     return True
         return False
+    
+    def random_direction(self, directions):
+        return choice(directions)
+    
+    def wander_random(self, directions):
+        return self.random_direction(directions)
+    
+    def wander_biased(self, directions):
+        previous_direction = self.direction
+        if previous_direction in directions:
+            if randint(0, 100) < 50:
+                return previous_direction
+            else:
+                directions.remove(previous_direction)
+                return choice(directions)
+        else:
+            return self.wander_random(directions)
+                
 
     def get_new_target(self, direction):
         if self.valid_direction(direction):

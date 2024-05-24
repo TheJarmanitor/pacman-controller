@@ -44,6 +44,18 @@ PAUSETXT = 3
 GAMEOVERTXT = 4
 
 
-KILL_GHOSTS = "Kill Ghosts"
 EAT_PELLETS = "Eat pellets"
-ESCAPE = "Escape"
+HUNT_GHOSTS = "Hunt Ghosts"
+
+
+ESCAPE_TO_NEXT_QUADRANT = "Escape to next quadrant"
+GO_TO_NEAREST_GHOST = "Go to nearest ghost"
+GO_TO_NEAREST_POWERPELLET = "Go to nearest PowerPellet"
+GO_TO_TARGET_CORNER = "Go to target corner"
+SELECT_NEW_QUADRANT = "Select new quadrant"
+WANDER_AROUND_QUADRANT = "Wander around quadrant"
+
+TOP_LEFT = 1
+TOP_RIGHT = 2
+BOT_LEFT = -2
+BOT_RIGHT = -1
