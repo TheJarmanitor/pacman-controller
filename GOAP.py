@@ -122,11 +122,11 @@ class GOAP(object):
             
 
         #eat pellet actions
-        if self.timer >= 0.0 and self.timer <= 2.0:
+        if self.timer >= 0.0 and self.timer <= 4.0:
             self.corner_wander_newquad()
-        elif self.timer > 2.0 and self.timer <= 6.0:
+        elif self.timer > 4.0 and self.timer <= 10.0:
             self.wander_newquad_corner()
-        elif self.timer > 6.0 and self.timer <= 10.0:
+        elif self.timer > 10.0 and self.timer <= 14.0:
             self.newquad_corner_wander()
         else:
             self.timer = 0.0
@@ -145,12 +145,12 @@ class GOAP(object):
         self.escape_to_next_quad.value = 1
     
     def hunt_escape_powerpellet(self):
-        self.go_to_nearest_powerpellet.value = 1
+        self.go_to_nearest_powerpellet.value = 5
         self.go_to_nearest_ghost.value = 100
-        self.escape_to_next_quad.value = 5
+        self.escape_to_next_quad.value = 1
         
     def escape_powerpellet_hunt(self):
-        self.go_to_nearest_powerpellet.value = 5
+        self.go_to_nearest_powerpellet.value = 10
         self.go_to_nearest_ghost.value = 1
         self.escape_to_next_quad.value = 100
         

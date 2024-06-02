@@ -29,7 +29,7 @@ class Pacman(Entity):
             BOT_LEFT: TOP_LEFT
         }
         
-        self.GOAP = GOAP(10)
+        self.GOAP = GOAP(7)
         self.GOAP_timer = 0
         self.hunt_ready = False
         self.quadrant_danger = 0
